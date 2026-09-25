@@ -1,8 +1,15 @@
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
+import { requireToolAccess } from "@/lib/access-server";
 import { HiOutlineUser } from "react-icons/hi";
 
-export default function IdCardPage() {
+export default async function IdCardPage() {
+    const { granted } = await requireToolAccess("id-card");
+    if (!granted) {
+        redirect("/dashboard");
+    }
+
     return (
         <div className="flex min-h-svh flex-col bg-background font-sans text-foreground">
             <Navbar />

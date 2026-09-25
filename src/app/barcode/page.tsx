@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Navbar from "@/components/Navbar";
+import AccessGate from "@/components/AccessGate";
 import {
     requestUploadUrl,
     uploadFileDirect,
@@ -397,6 +398,14 @@ function ErrorStep({ message, onReset }: { message: string; onReset: () => void 
 const STORAGE_KEY = "barcode-job-id";
 
 export default function BarcodePage() {
+    return (
+        <AccessGate slug="barcode">
+            <BarcodeApp />
+        </AccessGate>
+    );
+}
+
+function BarcodeApp() {
     const [step, setStep] = useState<Step>("upload");
     const [uploadProgress, setUploadProgress] = useState(0);
     const [jobId, setJobId] = useState<string | null>(null);

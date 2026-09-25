@@ -1,10 +1,19 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { TOOLS, isAdmin, userAccess, canAccessTool, mergeToolAccess } from '@/lib/access'
+import { fetchPublicTools } from '@/lib/public-tools'
 
 export async function updateSession(request: NextRequest) {
     let supabaseResponse = NextResponse.next({
         request,
     })
+
+    const pathname = request.nextUrl.pathname
+
+    // API routes self-authorize server-side; don't spend a getUser() on them here.
+    if (pathname.startsWith('/api')) {
+        return supabaseResponse
+    }
 
     const supabase = createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -32,16 +41,14 @@ export async function updateSession(request: NextRequest) {
     } = await supabase.auth.getUser()
 
     // Define protected routes
-    const isProtectedRoute = request.nextUrl.pathname.startsWith('/dashboard') ||
-        request.nextUrl.pathname.startsWith('/profile') ||
-        request.nextUrl.pathname.startsWith('/scanner') ||
-        request.nextUrl.pathname.startsWith('/barcode') ||
-        request.nextUrl.pathname.startsWith('/id-card')
+    const isProtectedRoute = pathname.startsWith('/dashboard') ||
+        pathname.startsWith('/manage-users') ||
+        TOOLS.some((t) => pathname === t.path)
 
     // Define auth routes (login/register)
-    const isAuthRoute = request.nextUrl.pathname === "/" ||
-        request.nextUrl.pathname.startsWith('/login') ||
-        request.nextUrl.pathname.startsWith('/register')
+    const isAuthRoute = pathname === "/" ||
+        pathname.startsWith('/login') ||
+        pathname.startsWith('/register')
 
     // 1. Redirect unauthenticated users away from protected routes
     if (!user && isProtectedRoute) {
@@ -55,6 +62,25 @@ export async function updateSession(request: NextRequest) {
         const url = request.nextUrl.clone()
         url.pathname = '/dashboard'
         return NextResponse.redirect(url)
+    }
+
+    // 3. Admin-only routes — this is an optimistic check; /manage-users also verifies server-side
+    if (user && pathname.startsWith('/manage-users') && !isAdmin(user)) {
+        const url = request.nextUrl.clone()
+        url.pathname = '/dashboard'
+        return NextResponse.redirect(url)
+    }
+
+    // 4. Tool routes — hide tools the user hasn't been granted. Public tools bypass
+    //    grants, so they're fetched only when this exact request is a tool route.
+    const toolMatch = TOOLS.find((t) => pathname === t.path)
+    if (user && toolMatch && !isAdmin(user)) {
+        const access = mergeToolAccess(userAccess(user), await fetchPublicTools(supabase))
+        if (!canAccessTool(access, toolMatch.slug)) {
+            const url = request.nextUrl.clone()
+            url.pathname = '/dashboard'
+            return NextResponse.redirect(url)
+        }
     }
 
     return supabaseResponse

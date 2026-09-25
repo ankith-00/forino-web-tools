@@ -2,7 +2,7 @@
 
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import Navbar from "@/components/Navbar";
-import { createClient } from "@/utils/supabase/client";
+import AccessGate from "@/components/AccessGate";
 import { BrowserMultiFormatReader } from "@zxing/browser";
 import {
     HiOutlineCheckCircle,
@@ -742,37 +742,34 @@ function Step3({
         setSubmitting(true);
         setError(null);
         try {
-            const supabase = createClient();
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) {
-                setError("You must be signed in to mark attendance. Please sign in and try again.");
-                return;
-            }
-
-            const { error: dbError } = await supabase.from("attendance").insert({
-                uucms: student.uucms,
-                student_name: student.student_name,
-                college_code: student.college_code,
-                college_name: student.college_name,
-                program_name: student.program_name,
-                semester: student.semester,
-                academic_year: student.academic_year,
-                course_code: course.course_code,
-                course_name: course.course_name,
-                exam_date: course.exam_date,
-                exam_time: course.exam_time,
-                qp_code_expected: course.qp_code,
-                centre_code: course.centre_code,
-                qp_code_scanned: qpValue,
-                answer_booklet_code: bookletCode,
-                marked_by: user?.id ?? null,
+            const res = await fetch("/api/attendance", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    uucms: student.uucms,
+                    student_name: student.student_name,
+                    college_code: student.college_code,
+                    college_name: student.college_name,
+                    program_name: student.program_name,
+                    semester: student.semester,
+                    academic_year: student.academic_year,
+                    course_code: course.course_code,
+                    course_name: course.course_name,
+                    exam_date: course.exam_date,
+                    exam_time: course.exam_time,
+                    qp_code_expected: course.qp_code,
+                    centre_code: course.centre_code,
+                    qp_code_scanned: qpValue,
+                    answer_booklet_code: bookletCode,
+                }),
             });
 
-            if (dbError) {
-                if (dbError.code === "23505") {
+            if (!res.ok) {
+                const d = await res.json().catch(() => null);
+                if (res.status === 409) {
                     throw new Error("Attendance already marked for this student and subject.");
                 }
-                throw new Error(dbError.message);
+                throw new Error(d?.error ?? "Failed to mark attendance");
             }
 
             onDone();
@@ -945,7 +942,7 @@ function Step3({
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
-export default function ScannerPage() {
+function ScannerApp() {
     const [step, setStep] = useState<Step>(1);
     const [student, setStudent] = useState<Student | null>(null);
     const [course, setCourse] = useState<Course | null>(null);
@@ -1081,5 +1078,13 @@ export default function ScannerPage() {
             </div>
 
         </div>
+    );
+}
+
+export default function ScannerPage() {
+    return (
+        <AccessGate slug="scanner">
+            <ScannerApp />
+        </AccessGate>
     );
 }

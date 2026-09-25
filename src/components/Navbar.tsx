@@ -2,19 +2,19 @@
 
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { useTheme } from "@/components/theme-provider";
+import { TOOLS, canAccessTool, isAdmin, userAccess, mergeToolAccess } from "@/lib/access";
 import { Blobatar } from "@blobatar/react";
 import "blobatar/motion.css";
 import {
     HiOutlineChevronRight,
-    HiOutlineUser,
-    HiOutlineCog,
     HiOutlineLogout,
     HiOutlineViewGrid,
     HiOutlineSun,
     HiOutlineMoon,
+    HiOutlineShieldCheck,
 } from "react-icons/hi";
 
 type UserInfo = {
@@ -23,30 +23,63 @@ type UserInfo = {
     avatar_url: string | null;
 };
 
+// Deterministic scramble of a string into a compact stable seed.
+function hashSeed(value: string): string {
+    let h = 5381;
+    for (let i = 0; i < value.length; i++) h = ((h * 33) ^ value.charCodeAt(i)) >>> 0;
+    return `u${h.toString(36)}`;
+}
+
 export default function Navbar() {
     const router = useRouter();
     const supabase = createClient();
     const { resolvedTheme, setTheme } = useTheme();
 
     const [user, setUser] = useState<UserInfo | null>(null);
+    const [admin, setAdmin] = useState(false);
+    const [toolAccess, setToolAccess] = useState<string[]>([]);
     const [avatarOpen, setAvatarOpen] = useState(false);
     const [toolsOpen, setToolsOpen] = useState(false);
 
     const avatarRef = useRef<HTMLDivElement>(null);
 
+    const refreshAccess = useCallback(async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+            setUser(null);
+            setAdmin(false);
+            setToolAccess([]);
+            return;
+        }
+        const access = userAccess(user);
+        setUser({
+            email: user.email ?? "",
+            display_name: user.user_metadata?.display_name ?? null,
+            avatar_url: user.user_metadata?.avatar_url ?? null,
+        });
+        setAdmin(isAdmin(user));
+        const { data } = await supabase.from("tool_settings").select("slug").eq("is_public", true);
+        const publicTools = ((data ?? []) as Array<{ slug: string }>).map((r) => r.slug);
+        const merged = mergeToolAccess(access, publicTools);
+        setToolAccess(merged.toolAccess);
+    }, [supabase]);
+
     useEffect(() => {
-        const getUser = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user) {
-                setUser({
-                    email: user.email ?? "",
-                    display_name: user.user_metadata?.display_name ?? null,
-                    avatar_url: user.user_metadata?.avatar_url ?? null,
-                });
-            }
+        refreshAccess();
+    }, [refreshAccess]);
+
+    useEffect(() => {
+        const onFocus = () => refreshAccess();
+        const onVisible = () => {
+            if (document.visibilityState === "visible") refreshAccess();
         };
-        getUser();
-    }, []);
+        window.addEventListener("focus", onFocus);
+        document.addEventListener("visibilitychange", onVisible);
+        return () => {
+            window.removeEventListener("focus", onFocus);
+            document.removeEventListener("visibilitychange", onVisible);
+        };
+    }, [refreshAccess]);
 
     useEffect(() => {
         const handler = (e: MouseEvent) => {
@@ -69,11 +102,21 @@ export default function Navbar() {
         router.refresh();
     };
 
-    const avatarKey = "alain00";
     const isDark = resolvedTheme === "dark";
+
+    // Admins keep the branded avatar; everyone else gets a stable per-user
+    // random-looking blob (seeded from their email so it never flickers).
+    const avatarKey = admin && user
+        ? "alain00"
+        : hashSeed(user?.email ?? "anon");
 
     const menuItemCls =
         "flex items-center gap-2.5 rounded-[0.5em] px-3 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground";
+
+    // Only surface tools the user has been granted (admins implicitly get all).
+    const accessibleTools = TOOLS.filter((t) =>
+        canAccessTool({ role: admin ? "admin" : "user", toolAccess }, t.slug)
+    );
 
     return (
         <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur">
@@ -123,63 +166,75 @@ export default function Navbar() {
                                             )}
                                         </div>
                                         <div className="min-w-0">
-                                            <p className="truncate text-sm font-medium text-foreground">
-                                                {user.display_name ?? "Account"}
-                                            </p>
+                                            <div className="flex items-center gap-1.5">
+                                                <p className="truncate text-sm font-medium text-foreground">
+                                                    {user.display_name ?? "Account"}
+                                                </p>
+                                                {admin && (
+                                                    <span className="shrink-0 rounded-full border border-fuchsia-400/40 bg-fuchsia-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-fuchsia-400">
+                                                        admin
+                                                    </span>
+                                                )}
+                                            </div>
                                             <p className="truncate text-xs text-muted-foreground">{user.email}</p>
                                         </div>
                                     </div>
 
-                                    {/* Tools expandable — always shown */}
-                                    <button
-                                        onClick={() => setToolsOpen((v) => !v)}
-                                        className={`w-full ${menuItemCls} justify-between`}
-                                    >
-                                        <span className="flex items-center gap-2.5">
-                                            <HiOutlineViewGrid size={15} className="shrink-0" />
-                                            Tools
-                                        </span>
-                                        <HiOutlineChevronRight
-                                            size={14}
-                                            className={`transition-transform duration-200 ${toolsOpen ? "rotate-90" : ""}`}
-                                        />
-                                    </button>
+                                    {/* Tools expandable — hidden entirely when no tool is granted */}
+                                    {accessibleTools.length > 0 && (
+                                        <>
+                                            <button
+                                                onClick={() => setToolsOpen((v) => !v)}
+                                                className={`w-full ${menuItemCls} justify-between`}
+                                            >
+                                                <span className="flex items-center gap-2.5">
+                                                    <HiOutlineViewGrid size={15} className="shrink-0" />
+                                                    Tools
+                                                </span>
+                                                <HiOutlineChevronRight
+                                                    size={14}
+                                                    className={`transition-transform duration-200 ${toolsOpen ? "rotate-90" : ""}`}
+                                                />
+                                            </button>
 
-                                    {/* Tools submenu */}
-                                    <div
-                                        className={`overflow-hidden transition-all duration-200 ${toolsOpen ? "max-h-48 opacity-100" : "max-h-0 opacity-0"
-                                            }`}
-                                    >
-                                        <div className="pl-3">
-                                            <Link
-                                                href="/barcode"
-                                                onClick={() => setAvatarOpen(false)}
-                                                className={menuItemCls}
+                                            <div
+                                                className={`overflow-hidden transition-all duration-200 ${toolsOpen ? "max-h-48 opacity-100" : "max-h-0 opacity-0"
+                                                    }`}
                                             >
-                                                <HiOutlineViewGrid size={15} className="shrink-0" />
-                                                Barcode Marker
-                                            </Link>
-                                            <Link
-                                                href="/scanner"
-                                                onClick={() => setAvatarOpen(false)}
-                                                className={menuItemCls}
-                                            >
-                                                <HiOutlineViewGrid size={15} className="shrink-0" />
-                                                Barcode Scanner
-                                            </Link>
-                                            <Link
-                                                href="/id-card"
-                                                onClick={() => setAvatarOpen(false)}
-                                                className={menuItemCls}
-                                            >
-                                                <HiOutlineUser size={15} className="shrink-0" />
-                                                ID Card Maker
-                                            </Link>
-                                        </div>
-                                    </div>
+                                                <div className="pl-3">
+                                                    {accessibleTools.map((t) => (
+                                                        <Link
+                                                            key={t.slug}
+                                                            href={t.path}
+                                                            onClick={() => setAvatarOpen(false)}
+                                                            className={menuItemCls}
+                                                        >
+                                                            <HiOutlineViewGrid size={15} className="shrink-0" />
+                                                            {t.slug === "scanner"
+                                                                ? "Barcode Scanner"
+                                                                : t.slug === "barcode"
+                                                                    ? "Barcode Marker"
+                                                                    : "ID Card Maker"}
+                                                        </Link>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </>
+                                    )}
 
                                     <div className="my-1 border-t border-border" />
 
+                                    {admin && (
+                                        <Link
+                                            href="/manage-users"
+                                            onClick={() => setAvatarOpen(false)}
+                                            className={menuItemCls}
+                                        >
+                                            <HiOutlineShieldCheck size={15} className="shrink-0" />
+                                            Manage Users
+                                        </Link>
+                                    )}
+                                    {/* Temporarily hidden — restore when these pages are built.
                                     <Link
                                         href="/dashboard/account"
                                         onClick={() => setAvatarOpen(false)}
@@ -196,6 +251,7 @@ export default function Navbar() {
                                         <HiOutlineCog size={15} className="shrink-0" />
                                         Settings
                                     </Link>
+                                    */}
 
                                     {/* Theme toggle */}
                                     <button
