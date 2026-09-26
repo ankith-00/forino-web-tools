@@ -23,6 +23,7 @@ export const TOOLS: readonly ToolDef[] = [
   { slug: "webcam-scanner", path: "/webcam-scanner", title: "Webcam Scanner" },
   { slug: "barcode", path: "/barcode", title: "Barcode Marker" },
   { slug: "id-card", path: "/id-card", title: "ID Card Maker" },
+  { slug: "attendance-records", path: "/attendance-records", title: "Attendance Records" },
 ];
 
 export interface UserAccess {

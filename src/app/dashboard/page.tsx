@@ -5,7 +5,7 @@ import ToolVisibilityToggle from "@/components/ToolVisibilityToggle";
 import { createClient } from "@/utils/supabase/server";
 import { TOOLS, userAccess, mergeToolAccess, canAccessTool } from "@/lib/access";
 import { fetchPublicTools } from "@/lib/public-tools";
-import { LuBookOpen, LuScanBarcode, LuFileChartColumn, LuCamera } from "react-icons/lu";
+import { LuBookOpen, LuScanBarcode, LuFileChartColumn, LuCamera, LuUsers, LuFileText } from "react-icons/lu";
 import { HiOutlineUser, HiOutlineDeviceMobile, HiOutlineLockClosed } from "react-icons/hi";
 import { IoChevronForwardOutline } from "react-icons/io5";
 
@@ -14,7 +14,8 @@ const TOOL_ICONS: Record<string, { icon: typeof LuScanBarcode }> = {
     "booklet-scanner": { icon: LuBookOpen },
     "webcam-scanner": { icon: LuCamera },
     barcode: { icon: LuFileChartColumn },
-    "id-card": { icon: HiOutlineUser },
+    "id-card": { icon: LuUsers },
+    "attendance-records": { icon: LuFileText },
 };
 
 /** Titles live on TOOLS in `@/lib/access` so the navbar and dashboard agree; this is the card's extra copy. */
@@ -39,6 +40,9 @@ const TOOL_META: Record<string, { description: string; note?: string; noteIcon?:
     },
     "id-card": {
         description: "Generate student ID cards from your records.",
+    },
+    "attendance-records": {
+        description: "View attendance logs and scanned answer booklets.",
     },
 };
 
