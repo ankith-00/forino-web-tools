@@ -210,11 +210,7 @@ export default function Navbar() {
                                                             className={menuItemCls}
                                                         >
                                                             <HiOutlineViewGrid size={15} className="shrink-0" />
-                                                            {t.slug === "scanner"
-                                                                ? "Barcode Scanner"
-                                                                : t.slug === "barcode"
-                                                                    ? "Barcode Marker"
-                                                                    : "ID Card Maker"}
+                                                            {t.title}
                                                         </Link>
                                                     ))}
                                                 </div>

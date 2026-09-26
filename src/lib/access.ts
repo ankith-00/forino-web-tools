@@ -11,14 +11,18 @@ interface HasAppMetadata {
 }
 
 export interface ToolDef {
-    slug: string;
-    path: string;
+  slug: string;
+  path: string;
+  /** Display name. Lives here so the navbar and the dashboard can never disagree. */
+  title: string;
 }
 
 export const TOOLS: readonly ToolDef[] = [
-    { slug: "scanner", path: "/scanner" },
-    { slug: "barcode", path: "/barcode" },
-    { slug: "id-card", path: "/id-card" },
+  { slug: "scanner", path: "/scanner", title: "Barcode Scanner" },
+  { slug: "booklet-scanner", path: "/booklet-scanner", title: "Booklet Scanner" },
+  { slug: "webcam-scanner", path: "/webcam-scanner", title: "Webcam Scanner" },
+  { slug: "barcode", path: "/barcode", title: "Barcode Marker" },
+  { slug: "id-card", path: "/id-card", title: "ID Card Maker" },
 ];
 
 export interface UserAccess {

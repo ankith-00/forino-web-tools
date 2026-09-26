@@ -5,29 +5,39 @@ import ToolVisibilityToggle from "@/components/ToolVisibilityToggle";
 import { createClient } from "@/utils/supabase/server";
 import { TOOLS, userAccess, mergeToolAccess, canAccessTool } from "@/lib/access";
 import { fetchPublicTools } from "@/lib/public-tools";
-import { LuScanBarcode, LuFileChartColumn } from "react-icons/lu";
+import { LuBookOpen, LuScanBarcode, LuFileChartColumn, LuCamera } from "react-icons/lu";
 import { HiOutlineUser, HiOutlineDeviceMobile, HiOutlineLockClosed } from "react-icons/hi";
 import { IoChevronForwardOutline } from "react-icons/io5";
 
 const TOOL_ICONS: Record<string, { icon: typeof LuScanBarcode }> = {
     scanner: { icon: LuScanBarcode },
+    "booklet-scanner": { icon: LuBookOpen },
+    "webcam-scanner": { icon: LuCamera },
     barcode: { icon: LuFileChartColumn },
     "id-card": { icon: HiOutlineUser },
 };
 
-const TOOL_META: Record<string, { title: string; description: string; note?: string; noteIcon?: typeof HiOutlineDeviceMobile }> = {
+/** Titles live on TOOLS in `@/lib/access` so the navbar and dashboard agree; this is the card's extra copy. */
+const TOOL_META: Record<string, { description: string; note?: string; noteIcon?: typeof HiOutlineDeviceMobile }> = {
     scanner: {
-        title: "Barcode Scanner",
         description: "Mark attendance by scanning hall ticket, QP code and answer booklet barcodes.",
         note: "Made for mobile screen",
         noteIcon: HiOutlineDeviceMobile,
     },
+    "booklet-scanner": {
+        description: "Scan a bound document two pages at a time and check the pages are in order.",
+        note: "Landscape mode only",
+        noteIcon: HiOutlineDeviceMobile,
+    },
+    "webcam-scanner": {
+        description: "Scan answer booklets page by page using your device camera. Automatically uploads to Supabase.",
+        note: "Camera required",
+        noteIcon: HiOutlineDeviceMobile,
+    },
     barcode: {
-        title: "Barcode Marker",
         description: "Upload a hall ticket PDF and stamp barcodes onto each student's ticket.",
     },
     "id-card": {
-        title: "ID Card Maker",
         description: "Generate student ID cards from your records.",
     },
 };
@@ -82,7 +92,7 @@ export default async function DashboardPage() {
                                         <Icon size={22} />
                                     </div>
                                     <div className="flex-1">
-                                        <p className="text-sm font-semibold text-foreground">{meta.title}</p>
+                                        <p className="text-sm font-semibold text-foreground">{t.title}</p>
                                         <p className="mt-1 text-xs text-muted-foreground">{meta.description}</p>
                                         {meta.note && NoteIcon && (
                                             <p className="mt-3 inline-flex items-center gap-1.5 rounded-[0.5em] bg-amber-500/10 px-2 py-1 text-[11px] font-medium text-amber-600 dark:text-amber-400">
@@ -101,7 +111,7 @@ export default async function DashboardPage() {
                                 </Link>
                                 <ToolVisibilityToggle
                                         slug={t.slug}
-                                        label={meta.title}
+                                        label={t.title}
                                         isPublic={publicTools.includes(t.slug)}
                                         isAdmin={isAdmin}
                                     />

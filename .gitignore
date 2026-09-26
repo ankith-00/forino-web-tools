@@ -17,6 +17,9 @@
 /.next/
 /out/
 
+# zxing wasm, copied out of node_modules by scripts/copy-zxing-wasm.mjs (predev/prebuild)
+/public/zxing_reader.wasm
+
 # production
 /build
 
