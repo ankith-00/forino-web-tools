@@ -4,6 +4,7 @@ import Navbar from "@/components/Navbar";
 import { createClient } from "@/utils/supabase/server";
 import { isAdmin } from "@/lib/access";
 import { listUsers } from "@/lib/admin";
+import { fetchPublicTools } from "@/lib/public-tools";
 import UsersTable from "./users-table";
 
 export const dynamic = "force-dynamic";
@@ -25,6 +26,7 @@ export default async function AdminPage() {
     }
     const adminCount = users.filter((u) => u.role === "admin").length;
     const nonAdmins = users.filter((u) => u.role !== "admin");
+    const publicTools = await fetchPublicTools(supabase);
 
     return (
         <div className="flex min-h-svh flex-col bg-background font-sans text-foreground">
@@ -49,14 +51,8 @@ export default async function AdminPage() {
                         </p>
                     </div>
                 ) : (
-                    <UsersTable users={nonAdmins} />
+                    <UsersTable users={nonAdmins} publicTools={publicTools} />
                 )}
-
-                <p className="mt-6 text-xs text-muted-foreground">
-                    Changes apply immediately on the target user&apos;s next page load. Requests are verified
-                    server-side, so the UI is only a convenience — the real permission check happens on every page
-                    and API call.
-                </p>
             </main>
             <footer className="py-4 text-center text-xs text-muted-foreground">
                 MADE WITH 💖 BY : <Link href="https://www.ankith.dev" target="_blank" className=" text-blue-500 underline font-semibold">ANKITH</Link>

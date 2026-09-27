@@ -249,7 +249,7 @@ function InstructionsStep({ onStart }: { onStart: () => void }) {
           <div className="flex h-12 w-12 items-center justify-center rounded-[0.8em] bg-primary/15 text-primary mb-3">
             <LuCamera size={24} />
           </div>
-          <h1 className="text-xl font-bold text-foreground">Answer Booklet Scanner</h1>
+          <h1 className="text-xl font-bold text-foreground">Booklet Scanner</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Scan and upload answer booklets using your device camera. Follow the steps below.
           </p>

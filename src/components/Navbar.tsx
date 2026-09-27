@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { useTheme } from "@/components/theme-provider";
 import { TOOLS, canAccessTool, isAdmin, userAccess, mergeToolAccess } from "@/lib/access";
+import { toolIcon } from "@/lib/tool-icons";
 import { Blobatar } from "@blobatar/react";
 import "blobatar/motion.css";
 import {
@@ -202,17 +203,20 @@ export default function Navbar() {
                                                     }`}
                                             >
                                                 <div className="pl-3">
-                                                    {accessibleTools.map((t) => (
-                                                        <Link
-                                                            key={t.slug}
-                                                            href={t.path}
-                                                            onClick={() => setAvatarOpen(false)}
-                                                            className={menuItemCls}
-                                                        >
-                                                            <HiOutlineViewGrid size={15} className="shrink-0" />
-                                                            {t.title}
-                                                        </Link>
-                                                    ))}
+                                                    {accessibleTools.map((t) => {
+                                                        const Icon = toolIcon(t.slug);
+                                                        return (
+                                                            <Link
+                                                                key={t.slug}
+                                                                href={t.path}
+                                                                onClick={() => setAvatarOpen(false)}
+                                                                className={menuItemCls}
+                                                            >
+                                                                <Icon size={15} className="shrink-0" />
+                                                                {t.title}
+                                                            </Link>
+                                                        );
+                                                    })}
                                                 </div>
                                             </div>
                                         </>

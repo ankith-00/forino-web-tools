@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
 
     const publicTools = await fetchPublicTools(supabase);
     const access = mergeToolAccess(userAccess(user), publicTools);
-    if (!canAccessTool(access, "webcam-scanner") && !canAccessTool(access, "scanner") && !canAccessTool(access, "booklet-scanner")) {
+    if (!canAccessTool(access, "webcam-scanner") && !canAccessTool(access, "scanner")) {
         return NextResponse.json({ error: "You don't have access to this tool" }, { status: 403 });
     }
 

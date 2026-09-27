@@ -36,9 +36,11 @@ function toAdminUser(u: {
     user_metadata?: unknown;
     app_metadata?: unknown;
     created_at?: string | null;
+    banned_until?: string | null;
 }): AdminUser {
     const existing = u.user_metadata as Record<string, unknown> | undefined;
     const access = userAccess(u);
+    const banned = !!u.banned_until;
     return {
         id: u.id,
         email: u.email ?? null,
@@ -50,6 +52,7 @@ function toAdminUser(u: {
         toolAccess: access.toolAccess,
         blockedTools: access.blockedTools ?? [],
         createdAt: u.created_at ?? null,
+        banned,
     };
 }
 
@@ -122,4 +125,26 @@ export async function setToolPublic(slug: string, isPublic: boolean): Promise<vo
         result = await admin.from("tool_settings").delete().eq("slug", slug);
     }
     if (result.error) throw result.error;
+}
+
+/** Ban a user from the entire platform. */
+export async function banUser(userId: string): Promise<void> {
+    const { error } = await getAdmin().auth.admin.updateUserById(userId, {
+        ban_duration: "87600h", // 10 years - effectively permanent
+    });
+    if (error) throw error;
+}
+
+/** Unban a user from the platform. */
+export async function unbanUser(userId: string): Promise<void> {
+    const { error } = await getAdmin().auth.admin.updateUserById(userId, {
+        ban_duration: "none",
+    });
+    if (error) throw error;
+}
+
+/** Check if a user is currently banned. */
+export async function isUserBanned(userId: string): Promise<boolean> {
+    const { data: user } = await getAdmin().auth.admin.getUserById(userId);
+    return user?.user?.banned_until !== null && user?.user?.banned_until !== undefined;
 }

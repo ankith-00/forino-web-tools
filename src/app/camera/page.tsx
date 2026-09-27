@@ -426,11 +426,11 @@ export default function CameraBridgePage() {
             turned on its way to the desktop.
           </p>
         ) : null}
-        <p className="text-white/70">
-          Keep this page open and the screen awake. On the desktop, open{" "}
-          <span className="font-bold text-white">/booklet-scanner</span> and choose{" "}
-          <span className="font-bold text-white">Phone over USB</span>.
-        </p>
+<p className="text-white/70">
+            Keep this page open and the screen awake. On the desktop, open{" "}
+            <span className="font-bold text-white">/webcam-scanner</span> and choose{" "}
+            <span className="font-bold text-white">Phone over USB</span>.
+          </p>
         {!running ? (
           <button
             onClick={() => {

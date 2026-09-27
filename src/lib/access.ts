@@ -18,9 +18,8 @@ export interface ToolDef {
 }
 
 export const TOOLS: readonly ToolDef[] = [
-  { slug: "scanner", path: "/scanner", title: "Barcode Scanner" },
-  { slug: "booklet-scanner", path: "/booklet-scanner", title: "Booklet Scanner" },
-  { slug: "webcam-scanner", path: "/webcam-scanner", title: "Webcam Scanner" },
+  { slug: "scanner", path: "/scanner", title: "Invigilation Module" },
+  { slug: "webcam-scanner", path: "/webcam-scanner", title: "Booklet Scanner" },
   { slug: "barcode", path: "/barcode", title: "Barcode Marker" },
   { slug: "id-card", path: "/id-card", title: "ID Card Maker" },
   { slug: "attendance-records", path: "/attendance-records", title: "Attendance Records" },
@@ -42,6 +41,7 @@ export interface AdminUser {
     toolAccess: string[];
     blockedTools: string[];
     createdAt: string | null;
+    banned: boolean;
 }
 
 /** Extract the access label from a user-like object (safe on client/server/edge). */

@@ -4,30 +4,16 @@ import Navbar from "@/components/Navbar";
 import ToolVisibilityToggle from "@/components/ToolVisibilityToggle";
 import { createClient } from "@/utils/supabase/server";
 import { TOOLS, userAccess, mergeToolAccess, canAccessTool } from "@/lib/access";
+import { toolIcon } from "@/lib/tool-icons";
 import { fetchPublicTools } from "@/lib/public-tools";
-import { LuBookOpen, LuScanBarcode, LuFileChartColumn, LuCamera, LuUsers, LuFileText } from "react-icons/lu";
 import { HiOutlineUser, HiOutlineDeviceMobile, HiOutlineLockClosed } from "react-icons/hi";
 import { IoChevronForwardOutline } from "react-icons/io5";
-
-const TOOL_ICONS: Record<string, { icon: typeof LuScanBarcode }> = {
-    scanner: { icon: LuScanBarcode },
-    "booklet-scanner": { icon: LuBookOpen },
-    "webcam-scanner": { icon: LuCamera },
-    barcode: { icon: LuFileChartColumn },
-    "id-card": { icon: LuUsers },
-    "attendance-records": { icon: LuFileText },
-};
 
 /** Titles live on TOOLS in `@/lib/access` so the navbar and dashboard agree; this is the card's extra copy. */
 const TOOL_META: Record<string, { description: string; note?: string; noteIcon?: typeof HiOutlineDeviceMobile }> = {
     scanner: {
         description: "Mark attendance by scanning hall ticket, QP code and answer booklet barcodes.",
         note: "Made for mobile screen",
-        noteIcon: HiOutlineDeviceMobile,
-    },
-    "booklet-scanner": {
-        description: "Scan a bound document two pages at a time and check the pages are in order.",
-        note: "Landscape mode only",
         noteIcon: HiOutlineDeviceMobile,
     },
     "webcam-scanner": {
@@ -42,7 +28,7 @@ const TOOL_META: Record<string, { description: string; note?: string; noteIcon?:
         description: "Generate student ID cards from your records.",
     },
     "attendance-records": {
-        description: "View attendance logs and scanned answer booklets.",
+        description: "View attendance logs.",
     },
 };
 
@@ -83,9 +69,9 @@ export default async function DashboardPage() {
                         <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     {visibleTools.map((t) => {
                         const meta = TOOL_META[t.slug];
-                        const { icon: Icon } = TOOL_ICONS[t.slug] ?? {};
+                        const Icon = toolIcon(t.slug);
                         const NoteIcon = meta?.noteIcon;
-                        if (!meta || !Icon) return null;
+                        if (!meta) return null;
                         return (
                             <div key={t.slug} className="relative">
                                 <Link

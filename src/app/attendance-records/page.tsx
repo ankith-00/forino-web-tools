@@ -26,26 +26,6 @@ async function getAttendanceData() {
     }
 }
 
-async function getAnswerBooklets() {
-    try {
-        const admin = getServiceClient();
-        const { data, error } = await admin
-            .from("answer_booklets")
-            .select("*")
-            .order("uploaded_at", { ascending: false })
-            .limit(300);
-
-        if (error) {
-            console.error("[attendance-records] Answer booklets fetch error:", error.message);
-            return [];
-        }
-        return data ?? [];
-    } catch (e) {
-        console.error("[attendance-records] Answer booklets query exception:", e);
-        return [];
-    }
-}
-
 export default async function AttendanceRecordsPage() {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -57,17 +37,13 @@ export default async function AttendanceRecordsPage() {
         redirect("/dashboard");
     }
 
-    const [attendance, answerBooklets] = await Promise.all([
-        getAttendanceData(),
-        getAnswerBooklets(),
-    ]);
+    const attendance = await getAttendanceData();
 
     return (
         <>
             <Navbar />
             <AttendanceRecordsClient
                 attendance={attendance}
-                answerBooklets={answerBooklets}
                 userId={user.id}
             />
         </>

@@ -165,9 +165,7 @@ function RegisterPage() {
                     />
                     <label htmlFor="terms" className="cursor-pointer">
                         I agree to the{" "}
-                        <Link href="/terms" className="text-primary underline">
-                            Terms & Conditions
-                        </Link>
+                        <span className="text-primary underline">Terms &amp; Conditions</span>
                     </label>
                 </div>
 

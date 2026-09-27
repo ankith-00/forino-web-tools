@@ -128,7 +128,7 @@ export default function ToolVisibilityToggle({
                                 type="button"
                                 onClick={() => setOpen(false)}
                                 disabled={isPending}
-                                className="cursor-pointer rounded-[0.6em] border border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted disabled:opacity-50"
+                                className="cursor-pointer rounded-[0.6em] border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
                             >
                                 Cancel
                             </button>
@@ -136,10 +136,10 @@ export default function ToolVisibilityToggle({
                                 type="button"
                                 onClick={confirm}
                                 disabled={isPending}
-                                className={`cursor-pointer rounded-[0.6em] px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50 ${
+                                className={`cursor-pointer w-full md:w-auto rounded-[0.6em] border px-8 py-2 text-sm font-medium transition-colors disabled:opacity-50 ${
                                     isPublic
-                                        ? "bg-red-500 hover:bg-red-600"
-                                        : "bg-sky-600 hover:bg-sky-700"
+                                        ? "border-red-500/30 bg-red-500/10 text-red-600 hover:bg-red-500/15 dark:text-red-400"
+                                        : "border-sky-500/30 bg-sky-500/10 text-sky-600 hover:bg-sky-500/15 dark:text-sky-400"
                                 }`}
                             >
                                 {isPending ? "Saving…" : isPublic ? "Make private" : "Make public"}
