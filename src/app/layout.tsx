@@ -2,8 +2,7 @@
 // https://tailwindcss.com/docs/font-family
 import type { Metadata } from "next";
 import { Lexend, Merriweather, JetBrains_Mono } from "next/font/google";
-import { ThemeProvider } from "@/components/theme-provider";
-import { ThemeInit } from "@/components/ThemeInit";
+import { ThemeProvider } from "@/components/theme/theme-provider";
 import "./globals.css";
 
 const fontSans = Lexend({

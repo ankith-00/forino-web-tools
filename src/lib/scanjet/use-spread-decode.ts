@@ -23,7 +23,7 @@ import { frameToView } from "@/lib/scanjet/capture";
  * EVERY QR in a frame together with its bounds. That is the whole point: a
  * spread is two page codes at once, one either side of the centre line, so a
  * single-symbol reader (what `@zxing/browser`'s `decodeFromCanvas` returns, and
- * what `/scanner` uses for attendance roll-call) cannot drive this screen.
+ * what `/tools/invigilation-module` uses for attendance roll-call) cannot drive this screen.
  *
  * The page QRs are small — about 12 mm, roughly 40 px in a 1080p view of an
  * open A4 spread — so `tryHarder` is on. jsQR and Chrome's BarcodeDetector both

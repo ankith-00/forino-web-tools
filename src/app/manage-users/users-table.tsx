@@ -3,6 +3,9 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { TOOLS, type AdminUser } from "@/lib/access";
+import type { Invite } from "@/lib/invite-shared";
+import { isExpired } from "@/lib/invite-shared";
+import InvitesPanel from "./invites-panel";
 import { toggleToolAccess, toggleBlockedTool, banUserFromPlatform, unbanUserFromPlatform, unbanUserWithTools } from "./actions";
 import {
     HiOutlineExclamation,
@@ -29,14 +32,24 @@ function initials(name: string | null, email: string | null): string {
         .join("");
 }
 
-export default function UsersTable({ users, publicTools = [] }: { users: AdminUser[]; publicTools: string[] }) {
+export default function UsersTable({
+    users,
+    publicTools = [],
+    invites = [],
+    inviteLoadError = null,
+}: {
+    users: AdminUser[];
+    publicTools: string[];
+    invites?: Invite[];
+    inviteLoadError?: string | null;
+}) {
     const router = useRouter();
     const [isPending, startTransition] = useTransition();
     const [error, setError] = useState<string | null>(null);
     const [query, setQuery] = useState("");
     const [filterSlugs, setFilterSlugs] = useState<string[]>([]);
     const [draftFilters, setDraftFilters] = useState<string[]>([]);
-    const [activeTab, setActiveTab] = useState<"active" | "banned">("active");
+    const [activeTab, setActiveTab] = useState<"active" | "banned" | "invites">("active");
     const [pending, setPending] = useState<{
         user: AdminUser;
         slug: string;
@@ -116,14 +129,20 @@ export default function UsersTable({ users, publicTools = [] }: { users: AdminUs
     const activeUsers = filtered.filter((u) => !u.banned);
     const bannedUsers = filtered.filter((u) => u.banned);
 
+    // Invitations are a different entity from users, so the invites tab owns the
+    // whole body: the search box and the tool filter only ever apply to users.
+    const showInvites = activeTab === "invites";
+
     // While narrowing, the tabs are hidden and every match is shown regardless of
     // ban status, so searching for a user always surfaces them either way.
-    const isNarrowing = q !== "" || filterSlugs.length > 0;
+    const isNarrowing = !showInvites && (q !== "" || filterSlugs.length > 0);
     const visibleUsers = isNarrowing
         ? filtered
         : activeTab === "banned"
             ? bannedUsers
             : activeUsers;
+
+    const pendingInvites = invites.filter((i) => i.status === "pending" && !isExpired(i)).length;
 
     return (
         <div className="mt-6 flex flex-col gap-4">
@@ -138,9 +157,82 @@ export default function UsersTable({ users, publicTools = [] }: { users: AdminUs
 
             {isPending && <p className="text-xs text-muted-foreground">Saving…</p>}
 
-            {/* Search + tool filter */}
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                <label className="relative flex flex-1 items-center">
+            {/* Tab bar. Rendered above both bodies so the invites tab is always
+                reachable — an admin who lands on it must be able to come back.
+                Hidden while searching or filtering, since narrowing then spans
+                active and banned users at once. */}
+            {!isNarrowing && (
+                <div className="flex gap-1 rounded-[0.7em] border border-border bg-card p-1">
+                    {(
+                        [
+                            // `short` is what fits at 375px; `label` is the real
+                            // name, used from `sm` up and exposed to assistive tech
+                            // at every width so abbreviating costs no clarity.
+                            { key: "active", short: "Active", label: "Active Users", count: activeUsers.length },
+                            { key: "banned", short: "Banned", label: "Banned Users", count: bannedUsers.length },
+                            { key: "invites", short: "Invites", label: "Invites sent", count: invites.length },
+                        ] as const
+                    ).map((tab) => {
+                        const selected = activeTab === tab.key;
+                        // A pending-and-unexpired count is what an admin who has sent
+                        // an invite nobody has opened yet actually wants to see.
+                        const awaiting = pendingInvites > 0;
+                        return (
+                            <button
+                                key={tab.key}
+                                type="button"
+                                onClick={() => setActiveTab(tab.key)}
+                                aria-label={tab.label}
+                                aria-current={selected ? "true" : undefined}
+                                // min-w-0 lets each tab actually shrink below its
+                                // content width; without it the three tabs' natural
+                                // widths overflow the bar on a narrow screen instead
+                                // of the labels truncating.
+                                className={`flex min-w-0 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-[0.5em] px-2 py-2 text-xs font-medium transition-colors sm:gap-2 sm:px-3 sm:text-sm ${
+                                    selected
+                                        ? tab.key === "banned"
+                                            ? "bg-red-500/10 text-red-600 dark:text-red-400"
+                                            : "bg-muted text-foreground"
+                                        : "text-muted-foreground hover:bg-muted/50"
+                                }`}
+                            >
+                                <span className="truncate sm:hidden">{tab.short}</span>
+                                <span className="hidden truncate sm:inline">{tab.label}</span>
+                                <span
+                                    className={`flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full px-1 text-[0.6rem] font-semibold sm:h-5 sm:min-w-5 sm:px-1.5 sm:text-[0.7rem] ${
+                                        selected
+                                            ? tab.key === "banned"
+                                                ? "bg-red-500/20 text-red-600 dark:text-red-400"
+                                                : "bg-foreground/10 text-foreground"
+                                            : "bg-muted text-muted-foreground"
+                                    }`}
+                                    title={
+                                        tab.key === "invites" && awaiting
+                                            ? `${pendingInvites} awaiting a response, ${invites.length} total`
+                                            : undefined
+                                    }
+                                >
+                                    {tab.key === "invites" && awaiting ? pendingInvites : tab.count}
+                                </span>
+                            </button>
+                        );
+                    })}
+                </div>
+            )}
+
+            {showInvites ? (
+                <InvitesPanel invites={invites} loadError={inviteLoadError} />
+            ) : (
+                <>
+            {/* Search + tool filter. One row at every width: on mobile the button
+                collapses to the icon alone so the search field keeps the width,
+                and the label returns from `sm` up. The filter's `aria-label`
+                carries the meaning that the visible text used to, since the
+                button has no accessible name of its own once `sm:inline` is
+                hidden. `min-w-0` on the label lets the field actually shrink
+                instead of the placeholder forcing the row to overflow. */}
+            <div className="flex items-center gap-2">
+                <label className="relative flex min-w-0 flex-1 items-center">
                     <HiOutlineSearch
                         size={15}
                         className="pointer-events-none absolute left-3 text-muted-foreground"
@@ -159,10 +251,15 @@ export default function UsersTable({ users, publicTools = [] }: { users: AdminUs
                         setDraftFilters(filterSlugs);
                         setFilterOpen(true);
                     }}
-                    className="flex cursor-pointer items-center gap-2 rounded-[0.6em] border border-border bg-card px-3 py-2 text-sm text-foreground transition-colors hover:bg-muted"
+                    aria-label={
+                        filterSlugs.length > 0
+                            ? `Filter users, ${filterSlugs.length} tool filter${filterSlugs.length === 1 ? "" : "s"} active`
+                            : "Filter users by tool"
+                    }
+                    className="flex shrink-0 cursor-pointer items-center gap-2 rounded-[0.6em] border border-border bg-card px-3 py-2 text-sm text-foreground transition-colors hover:bg-muted"
                 >
                     <HiOutlineFilter size={15} className="text-muted-foreground" />
-                    Filter
+                    <span className="hidden whitespace-nowrap sm:inline">Filter</span>
                     {filterSlugs.length > 0 && (
                         <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[0.65rem] font-semibold text-primary-foreground">
                             {filterSlugs.length}
@@ -170,47 +267,6 @@ export default function UsersTable({ users, publicTools = [] }: { users: AdminUs
                     )}
                 </button>
             </div>
-
-            {/* Active / Banned tabs — hidden while searching or filtering */}
-            {!isNarrowing && (
-                <div className="flex gap-1 rounded-[0.7em] border border-border bg-card p-1">
-                {(
-                    [
-                        { key: "active", label: "Active Users", count: activeUsers.length },
-                        { key: "banned", label: "Banned Users", count: bannedUsers.length },
-                    ] as const
-                ).map((tab) => {
-                    const selected = activeTab === tab.key;
-                    return (
-                        <button
-                            key={tab.key}
-                            type="button"
-                            onClick={() => setActiveTab(tab.key)}
-                            className={`flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-[0.5em] px-3 py-2 text-sm font-medium transition-colors ${
-                                selected
-                                    ? tab.key === "banned"
-                                        ? "bg-red-500/10 text-red-600 dark:text-red-400"
-                                        : "bg-muted text-foreground"
-                                    : "text-muted-foreground hover:bg-muted/50"
-                            }`}
-                        >
-                            {tab.label}
-                            <span
-                                className={`flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[0.7rem] font-semibold ${
-                                    selected
-                                        ? tab.key === "banned"
-                                            ? "bg-red-500/20 text-red-600 dark:text-red-400"
-                                            : "bg-foreground/10 text-foreground"
-                                        : "bg-muted text-muted-foreground"
-                                }`}
-                            >
-                                {tab.count}
-                            </span>
-                        </button>
-                    );
-                })}
-                </div>
-            )}
 
             {/* Tool filter modal */}
             {filterOpen && (
@@ -519,6 +575,8 @@ export default function UsersTable({ users, publicTools = [] }: { users: AdminUs
                     );
                 })}
             </div>
+                </>
+            )}
 
             {/* Per-user grant confirmation modal */}
             {pending && (

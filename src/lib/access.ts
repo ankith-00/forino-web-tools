@@ -18,11 +18,11 @@ export interface ToolDef {
 }
 
 export const TOOLS: readonly ToolDef[] = [
-  { slug: "scanner", path: "/scanner", title: "Invigilation Module" },
-  { slug: "webcam-scanner", path: "/webcam-scanner", title: "Booklet Scanner" },
-  { slug: "barcode", path: "/barcode", title: "Barcode Marker" },
-  { slug: "id-card", path: "/id-card", title: "ID Card Maker" },
-  { slug: "attendance-records", path: "/attendance-records", title: "Attendance Records" },
+    { slug: "scanner", path: "/tools/invigilation-module", title: "Invigilation Module" },
+    { slug: "webcam-scanner", path: "/tools/booklet-scanner", title: "Booklet Scanner" },
+    { slug: "barcode", path: "/tools/barcode-marker", title: "Barcode Marker" },
+    { slug: "id-card", path: "/tools/id-card-maker", title: "ID Card Maker" },
+    { slug: "attendance-records", path: "/tools/attendance-records", title: "Attendance Records" },
 ];
 
 export interface UserAccess {

@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import Navbar from "@/components/Navbar";
-import ToolVisibilityToggle from "@/components/ToolVisibilityToggle";
+import Navbar from "@/components/layout/Navbar";
+import { SiteFooter } from "@/components/layout/SiteFooter";
+import ToolVisibilityToggle from "@/components/access/ToolVisibilityToggle";
 import { createClient } from "@/utils/supabase/server";
 import { TOOLS, userAccess, mergeToolAccess, canAccessTool } from "@/lib/access";
 import { toolIcon } from "@/lib/tool-icons";
@@ -112,9 +113,7 @@ export default async function DashboardPage() {
                     </>
                 )}
             </main>
-            <footer className="py-4 text-center text-xs text-muted-foreground">
-                MADE WITH 💖 BY : <Link href="https://www.ankith.dev" target="_blank" className=" text-blue-500 underline font-semibold">ANKITH</Link>
-            </footer>
+            <SiteFooter />
         </div>
     );
 }

@@ -1,11 +1,14 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
-import Navbar from "@/components/Navbar";
+import Navbar from "@/components/layout/Navbar";
+import { SiteFooter } from "@/components/layout/SiteFooter";
 import { createClient } from "@/utils/supabase/server";
 import { isAdmin } from "@/lib/access";
 import { listUsers } from "@/lib/admin";
 import { fetchPublicTools } from "@/lib/public-tools";
+import { listInvites } from "@/lib/invites";
+import type { Invite } from "@/lib/invite-shared";
 import UsersTable from "./users-table";
+import InviteUser from "./invite-user";
 
 export const dynamic = "force-dynamic";
 
@@ -24,19 +27,40 @@ export default async function AdminPage() {
     } catch (e) {
         loadError = e instanceof Error ? e.message : "Failed to load users.";
     }
-    const adminCount = users.filter((u) => u.role === "admin").length;
+    // Only used by the subheading, which is commented out in the markup below.
+    // const adminCount = users.filter((u) => u.role === "admin").length;
     const nonAdmins = users.filter((u) => u.role !== "admin");
     const publicTools = await fetchPublicTools(supabase);
+
+    // Invitations are shown on their own tab. Loaded separately and defensively:
+    // if the migration hasn't been applied the users list is still perfectly
+    // usable, so a failure here must not take the whole page down with it.
+    let invites: Invite[] = [];
+    let inviteLoadError: string | null = null;
+    try {
+        invites = await listInvites();
+    } catch (e) {
+        inviteLoadError = e instanceof Error ? e.message : "Failed to load invitations.";
+    }
 
     return (
         <div className="flex min-h-svh flex-col bg-background font-sans text-foreground">
             <Navbar />
             <main className="mx-auto w-full max-w-6xl flex-1 px-6 pb-6 pt-8">
-                <div>
-                    <h1 className="text-2xl font-semibold">Manage Users</h1>
-                    <p className="text-sm text-muted-foreground">
+                {/* Title and the Invite button share one row, so the button never
+                    drops below the heading at a narrow width. */}
+                <div className="flex flex-col gap-1">
+                    <div className="flex items-center justify-between gap-3 sm:gap-4">
+                        <h1 className="text-2xl font-semibold">Manage Users</h1>
+                        <InviteUser />
+                    </div>
+                    {/* Subheading is currently disabled. `adminCount` above is
+                        commented out with it so it doesn't read as unused. Uncomment
+                        both to restore.
+                    <p className="text-xs text-muted-foreground sm:text-sm">
                         Grant or revoke tool access for each user.{adminCount > 0 && ` ${adminCount} admin${adminCount > 1 ? "s" : ""} on this team.`}
                     </p>
+                    */}
                 </div>
 
                 {loadError ? (
@@ -51,12 +75,15 @@ export default async function AdminPage() {
                         </p>
                     </div>
                 ) : (
-                    <UsersTable users={nonAdmins} publicTools={publicTools} />
+                    <UsersTable
+                        users={nonAdmins}
+                        publicTools={publicTools}
+                        invites={invites}
+                        inviteLoadError={inviteLoadError}
+                    />
                 )}
             </main>
-            <footer className="py-4 text-center text-xs text-muted-foreground">
-                MADE WITH 💖 BY : <Link href="https://www.ankith.dev" target="_blank" className=" text-blue-500 underline font-semibold">ANKITH</Link>
-            </footer>
+            <SiteFooter />
         </div>
     );
 }
