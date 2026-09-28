@@ -108,11 +108,11 @@ export default async function AcceptInvitePage({
         );
     }
 
-    const { displayName, email } = lookup.invite;
+    const { displayName } = lookup.invite;
 
     return (
         <Shell>
-            <AcceptInviteForm token={raw} displayName={displayName} email={email} />
+            <AcceptInviteForm token={raw} displayName={displayName} />
         </Shell>
     );
 }

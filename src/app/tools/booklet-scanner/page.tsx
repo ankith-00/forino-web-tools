@@ -455,6 +455,16 @@ function CandidateDetailsStep({
   );
 }
 
+/**
+ * Builds the uploaded PDF from the captured pages.
+ *
+ * Note this embeds `page.thumb`, which is the only JPEG encode that exists per
+ * page — the scanner also keeps the straightened `raster`, but that is the same
+ * 720px preview raster, so re-encoding it at a higher quality would recover
+ * nothing. The pages are therefore as sharp as the capture resolution allows,
+ * and the page box below is sized in pixels-as-points, so the PDF's physical
+ * dimensions are whatever the image dimensions happen to be.
+ */
 async function createPdfFromPages(pages: ScannedPage[]): Promise<Blob> {
   const pdfDoc = await PDFDocument.create();
 
@@ -524,6 +534,9 @@ function UploadStep({
         course_code: candidate.course_code ?? "",
         course_name: candidate.course_name ?? "",
         exam_date: candidate.exam_date ?? "",
+        // Carried so the QP code filter on the records page means the same thing
+        // on the booklets tab as on the attendance tab.
+        qp_code_scanned: candidate.qp_code_scanned ?? "",
         page_count: String(pages.length),
       };
 

@@ -62,6 +62,21 @@ export async function listUsers(): Promise<AdminUser[]> {
     return data.users.map(toAdminUser);
 }
 
+/**
+ * Map auth user ids to the display name `toAdminUser` would produce, so a name
+ * shown outside the admin panel can never disagree with the one in it.
+ *
+ * `attendance.marked_by` is a bare uuid, which is unreadable in a table, so
+ * callers resolve it through here. One list call rather than a lookup per id:
+ * the number of distinct markers is bounded by the institution, not by the
+ * number of rows.
+ */
+export function displayNamesById(users: AdminUser[]): Record<string, string> {
+    return Object.fromEntries(
+        users.map((u) => [u.id, u.displayName ?? u.email ?? "Unknown"])
+    );
+}
+
 export async function setToolAccess(userId: string, slugs: string[]): Promise<void> {
     const { data: user } = await getAdmin().auth.admin.getUserById(userId);
     const existing = user?.user?.app_metadata ?? {};

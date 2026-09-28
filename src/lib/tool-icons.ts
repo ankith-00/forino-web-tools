@@ -2,10 +2,11 @@ import type { IconType } from "react-icons";
 import {
     LuScanBarcode,
     LuCamera,
-    LuFileChartColumn,
-    LuIdCard,
     LuFileText,
 } from "react-icons/lu";
+import { ImBarcode } from "react-icons/im";
+import { MdAutoGraph } from "react-icons/md";
+import { BiSolidCard } from "react-icons/bi";
 
 /**
  * Per-tool icons, shared by the avatar menu and the dashboard so a tool looks
@@ -17,9 +18,9 @@ import {
 export const TOOL_ICONS: Record<string, IconType> = {
     scanner: LuScanBarcode,
     "webcam-scanner": LuCamera,
-    barcode: LuFileChartColumn,
-    "id-card": LuIdCard,
-    "attendance-records": LuFileText,
+    barcode: ImBarcode,
+    "id-card": BiSolidCard,
+    "attendance-records": MdAutoGraph,
 };
 
 export function toolIcon(slug: string): IconType {

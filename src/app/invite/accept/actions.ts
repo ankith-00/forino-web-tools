@@ -81,7 +81,8 @@ export interface AcceptInviteResult {
 
 export async function acceptInvite(
     token: string,
-    password: string
+    password: string,
+    acceptedTerms: boolean
 ): Promise<AcceptInviteResult> {
     if (rateLimited(await headers())) {
         return {
@@ -92,6 +93,12 @@ export async function acceptInvite(
 
     if (!token || typeof token !== "string" || token.length < 20) {
         return { ok: false, error: "This invitation link is not valid." };
+    }
+    // The form makes this unskippable, but this action is reachable by direct POST
+    // from anyone holding the link, so the acceptance is checked here too. It is
+    // only a statement of intent, so it is not recorded beyond the account itself.
+    if (acceptedTerms !== true) {
+        return { ok: false, error: "Please accept the terms and conditions to continue." };
     }
     const passwordError = validatePassword(password ?? "");
     if (passwordError) return { ok: false, error: passwordError };
@@ -141,19 +148,41 @@ export async function acceptInvite(
     }
 
     const admin = getServiceClient();
+    // Set the moment the account exists, so the catch below can tell "nothing was
+    // created, retry is safe" from "the account is real, the link is spent".
+    let createdUserId: string | null = null;
     try {
         // email_confirm: true because the admin vouched for this address and the
         // invitee proved control of it by opening the emailed link. The
         // set_default_access_metadata trigger assigns role "user" and an empty
-        // tool_access, and public tools are merged in at read time — so this
-        // account sees exactly the public tools, with no stale grants.
-        const { error } = await admin.auth.admin.createUser({
+        // tool_access, and public tools are merged in at read time.
+        const { data, error } = await admin.auth.admin.createUser({
             email: invite.email,
             password,
             email_confirm: true,
             user_metadata: { display_name: invite.displayName },
         });
         if (error) throw error;
+        createdUserId = data.user.id;
+
+        // Now apply the tool access the admin chose when they sent the invitation.
+        // It cannot ride along on createUser: the trigger concatenates
+        // `{"role":"user","tool_access":[]}` over whatever app_metadata it is
+        // given, and in jsonb `||` the right side wins, so the grant would be
+        // overwritten. Write it afterwards instead, in one call so a half-applied
+        // set is not possible.
+        if (invite.grantedTools.length > 0 || invite.blockedTools.length > 0) {
+            const { data: fresh } = await admin.auth.admin.getUserById(createdUserId);
+            const existing = (fresh?.user?.app_metadata ?? {}) as Record<string, unknown>;
+            const { error: accessError } = await admin.auth.admin.updateUserById(createdUserId, {
+                app_metadata: {
+                    ...existing,
+                    tool_access: invite.grantedTools,
+                    blocked_tools: invite.blockedTools,
+                },
+            });
+            if (accessError) throw accessError;
+        }
     } catch (e) {
         const detail = e instanceof Error ? e.message : String(e);
         console.error("[invite/accept] createUser failed:", detail);
@@ -167,7 +196,19 @@ export async function acceptInvite(
             };
         }
 
-        // Something transient: give the link back so a retry can work.
+        // The account is real but its access is not set, so the link is spent and
+        // handing it back would only produce a duplicate-email error on retry.
+        // Say what actually happened and who can fix it.
+        if (createdUserId) {
+            return {
+                ok: false,
+                error:
+                    "Your account was created, but we could not finish setting up your tools. Ask the person who invited you to set your access, then sign in.",
+                alreadyRegistered: true,
+            };
+        }
+
+        // Nothing was created: give the link back so a retry can work.
         try {
             await releaseInviteClaim(invite.id);
         } catch (releaseErr) {

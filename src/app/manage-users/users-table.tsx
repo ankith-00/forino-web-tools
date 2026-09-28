@@ -4,7 +4,8 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { TOOLS, type AdminUser } from "@/lib/access";
 import type { Invite } from "@/lib/invite-shared";
-import { isExpired } from "@/lib/invite-shared";
+import { isExpired, inviteMatchesQuery } from "@/lib/invite-shared";
+import { initials } from "@/lib/initials";
 import InvitesPanel from "./invites-panel";
 import { toggleToolAccess, toggleBlockedTool, banUserFromPlatform, unbanUserFromPlatform, unbanUserWithTools } from "./actions";
 import {
@@ -21,16 +22,6 @@ import {
 const TOOL_LABELS: Record<string, string> = Object.fromEntries(
     TOOLS.map((t) => [t.slug, t.title])
 );
-
-function initials(name: string | null, email: string | null): string {
-    const source = name?.trim() || email?.trim() || "?";
-    return source
-        .split(/[\s@.]+/)
-        .filter(Boolean)
-        .slice(0, 2)
-        .map((p) => p[0]?.toUpperCase() ?? "")
-        .join("");
-}
 
 export default function UsersTable({
     users,
@@ -129,8 +120,9 @@ export default function UsersTable({
     const activeUsers = filtered.filter((u) => !u.banned);
     const bannedUsers = filtered.filter((u) => u.banned);
 
-    // Invitations are a different entity from users, so the invites tab owns the
-    // whole body: the search box and the tool filter only ever apply to users.
+    // Invitations are a different entity from users, so the invites tab swaps the
+    // body out for their cards. The search field and tool filter sit above the
+    // swap instead, so both tabs get them.
     const showInvites = activeTab === "invites";
 
     // While narrowing, the tabs are hidden and every match is shown regardless of
@@ -143,6 +135,12 @@ export default function UsersTable({
             : activeUsers;
 
     const pendingInvites = invites.filter((i) => i.status === "pending" && !isExpired(i)).length;
+
+    // Search results span both entities: an invitation matches on the same
+    // name-or-email test the user cards use. The tool filter deliberately does
+    // not reach invitations, which have no tool access until they are accepted.
+    const inviteHits =
+        q.trim() === "" ? [] : invites.filter((i) => inviteMatchesQuery(i, q));
 
     return (
         <div className="mt-6 flex flex-col gap-4">
@@ -220,11 +218,9 @@ export default function UsersTable({
                 </div>
             )}
 
-            {showInvites ? (
-                <InvitesPanel invites={invites} loadError={inviteLoadError} />
-            ) : (
-                <>
-            {/* Search + tool filter. One row at every width: on mobile the button
+            {/* Search + tool filter. Shown on every tab: the field matches names and
+                emails on both users and invitations, so an invitee is findable from
+                the user tabs too. One row at every width: on mobile the button
                 collapses to the icon alone so the search field keeps the width,
                 and the label returns from `sm` up. The filter's `aria-label`
                 carries the meaning that the visible text used to, since the
@@ -280,17 +276,7 @@ export default function UsersTable({
                         role="dialog"
                         aria-modal="true"
                     >
-                        <div className="flex items-center justify-between gap-3">
-                            <h2 className="text-base font-semibold text-foreground">Filter users</h2>
-                            <button
-                                type="button"
-                                onClick={() => setFilterOpen(false)}
-                                aria-label="Close"
-                                className="cursor-pointer rounded-[0.5em] border border-border bg-background p-1.5 text-foreground transition-colors hover:bg-muted"
-                            >
-                                <HiOutlineX size={14} />
-                            </button>
-                        </div>
+                        <h2 className="text-base font-semibold text-foreground">Filter users</h2>
 
                         <p className="mt-1 text-xs text-muted-foreground">
                             Select one or more tools. Users matching any selected tool are shown.
@@ -364,7 +350,17 @@ export default function UsersTable({
                 </div>
             )}
 
-            {visibleUsers.length === 0 && (
+            {showInvites ? (
+                <InvitesPanel
+                    invites={invites}
+                    query={query}
+                    loadError={inviteLoadError}
+                />
+            ) : (
+                <>
+            {/* Suppressed when the search matched invitations only, so the
+                "no users" message does not contradict the invite cards under it. */}
+            {visibleUsers.length === 0 && !(isNarrowing && inviteHits.length > 0) && (
                 <p className="rounded-[0.8em] border border-border bg-card p-6 text-center text-sm text-muted-foreground">
                     {users.length === 0
                         ? "No users found."
@@ -381,7 +377,13 @@ export default function UsersTable({
                     return (
                         <div
                             key={u.id}
-                            className={`rounded-[0.8em] border border-border bg-card p-4 shadow-sm ${u.banned ? "border-red-400/40 bg-red-500/5" : ""}`}
+                            // A banned card supplies its own border and background
+                            // rather than overriding the base ones: `.border-border`
+                            // and `.bg-card` are emitted after the palette utilities
+                            // (the theme registers `--color-card` in `@theme inline`),
+                            // so a trailing `border-red-* bg-red-*` loses to them and
+                            // the card would stay neutral.
+                            className={`rounded-[0.8em] border p-4 shadow-sm ${u.banned ? "border-red-400/40 bg-red-500/10" : "border-border bg-card"}`}
                         >
                             <div className="flex items-center justify-between gap-3">
                                 <div className="flex min-w-0 items-center gap-3">
@@ -575,6 +577,14 @@ export default function UsersTable({
                     );
                 })}
             </div>
+
+            {/* A pending invitee has no account, so they cannot appear in the user
+                list at all. While narrowing, invite matches are appended below the
+                user cards so one search finds whoever you are looking for wherever
+                they currently are. */}
+            {isNarrowing && inviteHits.length > 0 && (
+                <InvitesPanel invites={inviteHits} />
+            )}
                 </>
             )}
 

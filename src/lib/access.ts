@@ -17,12 +17,17 @@ export interface ToolDef {
   title: string;
 }
 
+/**
+ * The display order of every tool, and the single place the list is defined from.
+ * The dashboard, the navbar dropdown and the admin tool pickers all render this
+ * array as-is, so moving an entry here moves it everywhere.
+ */
 export const TOOLS: readonly ToolDef[] = [
+    { slug: "barcode", path: "/tools/barcode-marker", title: "Barcode Marker" },
     { slug: "scanner", path: "/tools/invigilation-module", title: "Invigilation Module" },
     { slug: "webcam-scanner", path: "/tools/booklet-scanner", title: "Booklet Scanner" },
-    { slug: "barcode", path: "/tools/barcode-marker", title: "Barcode Marker" },
-    { slug: "id-card", path: "/tools/id-card-maker", title: "ID Card Maker" },
     { slug: "attendance-records", path: "/tools/attendance-records", title: "Attendance Records" },
+    { slug: "id-card", path: "/tools/id-card-maker", title: "ID Card Maker" },
 ];
 
 export interface UserAccess {

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/utils/supabase/server";
-import { isAdmin } from "@/lib/access";
+import { isAdmin, TOOLS } from "@/lib/access";
 import { clearPublicToolsCache, fetchPublicTools } from "@/lib/public-tools";
 import { inviteEmail } from "@/lib/email/templates/invite-email";
 import { sendEmail } from "@/lib/email/resend";
@@ -113,21 +113,33 @@ export interface InviteUserResult {
 }
 
 /**
- * Invite somebody to the platform by name and email.
+ * Invite somebody to the platform by name and email, with a chosen tool set.
  *
  * The Supabase account is not created here. The invitee gets a link, chooses
  * their own password, and only then does the account appear — so an invitation
  * that bounces or is ignored leaves nothing behind in auth.users, and the same
- * address can be re-invited. The new account comes up as a normal user with no
- * individual tool grants, which means it sees exactly the public tools at read
- * time (see src/lib/invites.ts for why nothing is persisted here).
+ * address can be re-invited.
+ *
+ * `grantedTools` and `blockedTools` are the admin's choice of access, stored on
+ * the invite row and applied to the account at accept time. They are re-derived
+ * here rather than trusted: the client can send any strings it likes, so unknown
+ * slugs are dropped and each list is forced to the half of the platform it is
+ * allowed to speak for. Public tools are granted to everyone at read time by
+ * `mergeToolAccess`, so a public slug is only ever expressed as a block, and
+ * persisting one as a grant would leave a stale grant behind if the tool were
+ * later made private (same trap as unbanUserWithTools below).
  *
  * Returns a result rather than throwing, because unlike the toggle actions this
  * one has a success path the admin needs to see. Failures that are the admin's
  * to fix come back as ok:false; anything unexpected is logged and reported
  * generically so internals don't leak into the UI.
  */
-export async function inviteUser(name: string, email: string): Promise<InviteUserResult> {
+export async function inviteUser(
+    name: string,
+    email: string,
+    grantedTools: string[] = [],
+    blockedTools: string[] = []
+): Promise<InviteUserResult> {
     await assertAdmin();
 
     const displayName = name.trim();
@@ -159,9 +171,31 @@ export async function inviteUser(name: string, email: string): Promise<InviteUse
         return { ok: false, message: "Could not check whether that email is already registered." };
     }
 
+    const known = new Set(TOOLS.map((t) => t.slug));
+    let publicTools: string[] = [];
+    try {
+        publicTools = await fetchPublicTools(await createClient());
+    } catch (e) {
+        // Without this the server cannot tell a grant from a block, and guessing
+        // would silently give the invitee the wrong tools. Fail the invite.
+        console.error("[invite] public tool lookup failed:", e);
+        return { ok: false, message: "Could not read the tool list. Try again in a moment." };
+    }
+    const isPublic = (slug: string) => publicTools.includes(slug);
+
+    // Grants are private-only, blocks are public-only. Either list carrying a slug
+    // from the other half is dropped rather than trusted.
+    const privateGrants = grantedTools.filter((s) => known.has(s) && !isPublic(s));
+    const publicBlocks = blockedTools.filter((s) => known.has(s) && isPublic(s));
+
     let created: Awaited<ReturnType<typeof createInvite>>;
     try {
-        created = await createInvite({ email: address, displayName });
+        created = await createInvite({
+            email: address,
+            displayName,
+            grantedTools: privateGrants,
+            blockedTools: publicBlocks,
+        });
     } catch (e) {
         // Almost always the migration has not been applied yet.
         console.error("[invite] createInvite failed:", e);

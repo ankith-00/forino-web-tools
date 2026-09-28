@@ -7,29 +7,30 @@ import { createClient } from "@/utils/supabase/server";
 import { TOOLS, userAccess, mergeToolAccess, canAccessTool } from "@/lib/access";
 import { toolIcon } from "@/lib/tool-icons";
 import { fetchPublicTools } from "@/lib/public-tools";
-import { HiOutlineUser, HiOutlineDeviceMobile, HiOutlineLockClosed } from "react-icons/hi";
-import { IoChevronForwardOutline } from "react-icons/io5";
+import { HiOutlineUser, HiOutlineLockClosed } from "react-icons/hi";
+import { HiOutlineExclamationTriangle } from "react-icons/hi2";
+import type { IconType } from "react-icons";
 
 /** Titles live on TOOLS in `@/lib/access` so the navbar and dashboard agree; this is the card's extra copy. */
-const TOOL_META: Record<string, { description: string; note?: string; noteIcon?: typeof HiOutlineDeviceMobile }> = {
-    scanner: {
-        description: "Mark attendance by scanning hall ticket, QP code and answer booklet barcodes.",
-        note: "Made for mobile screen",
-        noteIcon: HiOutlineDeviceMobile,
-    },
-    "webcam-scanner": {
-        description: "Scan answer booklets page by page using your device camera. Automatically uploads to Supabase.",
-        note: "Camera required",
-        noteIcon: HiOutlineDeviceMobile,
-    },
+const TOOL_META: Record<string, { description: string; note?: string; noteIcon?: IconType }> = {
     barcode: {
         description: "Upload a hall ticket PDF and stamp barcodes onto each student's ticket.",
     },
-    "id-card": {
-        description: "Generate student ID cards from your records.",
+    scanner: {
+        description: "Mark attendance by scanning hall ticket, QP code and answer booklet barcodes.",
+        note: "Made for mobile screen",
+        noteIcon: HiOutlineExclamationTriangle,
+    },
+    "webcam-scanner": {
+        description: "Scan answer booklets page by page using your device camera.",
+        note: "Camera required",
+        noteIcon: HiOutlineExclamationTriangle,
     },
     "attendance-records": {
-        description: "View attendance logs.",
+        description: "Review and search attendance marked through the barcode scanner.",
+    },
+    "id-card": {
+        description: "Generate student ID cards from your students' records.",
     },
 };
 
@@ -68,47 +69,57 @@ export default async function DashboardPage() {
                         </p>
 
                         <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {visibleTools.map((t) => {
-                        const meta = TOOL_META[t.slug];
-                        const Icon = toolIcon(t.slug);
-                        const NoteIcon = meta?.noteIcon;
-                        if (!meta) return null;
-                        return (
-                            <div key={t.slug} className="relative">
-                                <Link
-                                    href={t.path}
-                                    className="group flex h-full cursor-pointer flex-col gap-4 rounded-[0.8em] border border-border bg-card p-5 pr-12 shadow-sm transition-all hover:border-primary/40 hover:bg-muted/40"
-                                >
-                                    <div className="flex h-11 w-11 items-center justify-center rounded-[0.8em] bg-primary/10 text-primary">
-                                        <Icon size={22} />
-                                    </div>
-                                    <div className="flex-1">
-                                        <p className="text-sm font-semibold text-foreground">{t.title}</p>
-                                        <p className="mt-1 text-xs text-muted-foreground">{meta.description}</p>
-                                        {meta.note && NoteIcon && (
-                                            <p className="mt-3 inline-flex items-center gap-1.5 rounded-[0.5em] bg-amber-500/10 px-2 py-1 text-[11px] font-medium text-amber-600 dark:text-amber-400">
-                                                <NoteIcon size={13} />
-                                                {meta.note}
-                                            </p>
-                                        )}
-                                    </div>
-                                    <span className="flex items-center gap-1 text-xs font-medium text-primary">
-                                        Open tool
-                                        <IoChevronForwardOutline
-                                            size={13}
-                                            className="transition-transform group-hover:translate-x-0.5"
+                            {visibleTools.map((t) => {
+                                const meta = TOOL_META[t.slug];
+                                const Icon = toolIcon(t.slug);
+                                const NoteIcon = meta?.noteIcon;
+                                if (!meta) return null;
+                                return (
+                                    // `sm:h-52` sits on the wrapper rather than the link, so
+                                    // the card and the box the visibility toggle is
+                                    // positioned against are the same height. Sized to
+                                    // clear a three-line description plus the note band,
+                                    // so the tallest card no longer stretches its row.
+                                    // Left auto on a phone, where the grid is a single
+                                    // column and a fixed height would only clip.
+                                    <div key={t.slug} className="relative sm:h-52">
+                                        <Link
+                                            href={t.path}
+                                            className="flex h-full cursor-pointer flex-col overflow-hidden rounded-[0.8em] border border-border bg-card shadow-sm transition-all hover:border-primary/40 hover:bg-muted/40"
+                                        >
+                                            <div className="flex flex-1 flex-col gap-4 p-5 pr-12">
+                                                <div className="flex h-11 w-11 items-center justify-center rounded-[0.8em] bg-primary/10 text-primary">
+                                                    <Icon size={22} />
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm font-semibold text-foreground">
+                                                        {t.title}
+                                                    </p>
+                                                    <p className="mt-1 text-xs text-muted-foreground">
+                                                        {meta.description}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            {/* Requirement badge, full width along the
+                                                bottom edge. `flex-1` on the block above
+                                                pins it there however long the description
+                                                runs, so the badges line up across a row. */}
+                                            {meta.note && NoteIcon && (
+                                                <p className="flex items-center gap-1.5 border-t border-amber-500/20 bg-amber-500/10 px-5 py-2 text-[11px] font-medium text-amber-600 dark:text-amber-400">
+                                                    <NoteIcon size={13} className="shrink-0" />
+                                                    {meta.note}
+                                                </p>
+                                            )}
+                                        </Link>
+                                        <ToolVisibilityToggle
+                                            slug={t.slug}
+                                            label={t.title}
+                                            isPublic={publicTools.includes(t.slug)}
+                                            isAdmin={isAdmin}
                                         />
-                                    </span>
-                                </Link>
-                                <ToolVisibilityToggle
-                                        slug={t.slug}
-                                        label={t.title}
-                                        isPublic={publicTools.includes(t.slug)}
-                                        isAdmin={isAdmin}
-                                    />
-                            </div>
-                        );
-                    })}
+                                    </div>
+                                );
+                            })}
                         </div>
                     </>
                 )}

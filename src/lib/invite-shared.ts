@@ -20,6 +20,16 @@ export interface Invite {
     createdAt: string;
     expiresAt: string;
     acceptedAt: string | null;
+    /**
+     * What the admin picked when sending the invitation, applied to the auth
+     * account on acceptance. Split in two because public tools are already granted
+     * to everyone at read time by `mergeToolAccess`, so the only way to *deny* one
+     * is a block:
+     *  - grantedTools: private tools to grant individually.
+     *  - blockedTools: public tools the admin switched off for this person.
+     */
+    grantedTools: string[];
+    blockedTools: string[];
 }
 
 /**
@@ -42,4 +52,17 @@ export function inviteState(invite: Invite, now = Date.now()): InviteState {
 /** Only a still-pending invitation can be withdrawn or re-sent. */
 export function isWithdrawable(invite: Invite, now = Date.now()): boolean {
     return inviteState(invite, now) === "pending";
+}
+
+/**
+ * Name-or-email match, the same test the user cards apply. Shared so the invite
+ * tab and the search-results list of invites cannot drift apart.
+ */
+export function inviteMatchesQuery(invite: Invite, query: string): boolean {
+    const q = query.trim().toLowerCase();
+    if (!q) return true;
+    return (
+        invite.displayName?.toLowerCase().includes(q) === true ||
+        invite.email.toLowerCase().includes(q)
+    );
 }

@@ -43,6 +43,12 @@ export default async function AdminPage() {
         inviteLoadError = e instanceof Error ? e.message : "Failed to load invitations.";
     }
 
+    // An invitation that has been accepted is no longer an open question: the
+    // invitee has a real account, so `listUsers` already reports them and they
+    // belong in the Active Users tab. Keeping the spent row in Invites would show
+    // the same person twice, once without the tool controls they actually need.
+    const openInvites = invites.filter((i) => i.status !== "accepted");
+
     return (
         <div className="flex min-h-svh flex-col bg-background font-sans text-foreground">
             <Navbar />
@@ -52,7 +58,7 @@ export default async function AdminPage() {
                 <div className="flex flex-col gap-1">
                     <div className="flex items-center justify-between gap-3 sm:gap-4">
                         <h1 className="text-2xl font-semibold">Manage Users</h1>
-                        <InviteUser />
+                        <InviteUser publicTools={publicTools} />
                     </div>
                     {/* Subheading is currently disabled. `adminCount` above is
                         commented out with it so it doesn't read as unused. Uncomment
@@ -78,7 +84,7 @@ export default async function AdminPage() {
                     <UsersTable
                         users={nonAdmins}
                         publicTools={publicTools}
-                        invites={invites}
+                        invites={openInvites}
                         inviteLoadError={inviteLoadError}
                     />
                 )}

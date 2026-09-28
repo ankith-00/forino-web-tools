@@ -10,23 +10,18 @@ interface Props {
     /** Raw one-time token from the link. Never rendered. */
     token: string;
     displayName: string | null;
-    email: string;
 }
 
 /**
- * The password rules are enforced in the accept action too; this is a hint, not
- * the check. Keep the wording identical to that in ./actions.ts so a user isn't
- * told one thing and held to another.
+ * The password rules are enforced in the accept action too, and come back as the
+ * error banner if they are not met. The rules are deliberately not listed here:
+ * this card is a one-field-tap for somebody who has just been invited, and the
+ * list said more about the form than the invitation did.
  */
-const RULES = [
-    "At least 6 characters",
-    "Contains a number",
-    "Contains a special character",
-];
-
-export default function AcceptInviteForm({ token, displayName, email }: Props) {
+export default function AcceptInviteForm({ token, displayName }: Props) {
     const [password, setPassword] = useState("");
     const [confirm, setConfirm] = useState("");
+    const [acceptedTerms, setAcceptedTerms] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [pending, startTransition] = useTransition();
     const router = useRouter();
@@ -41,7 +36,7 @@ export default function AcceptInviteForm({ token, displayName, email }: Props) {
         }
 
         startTransition(async () => {
-            const result = await acceptInvite(token, password);
+            const result = await acceptInvite(token, password, acceptedTerms);
             if (result.ok) {
                 // No session is created here — createUser runs with the service
                 // role and does not sign anybody in — so send them to log in with
@@ -65,7 +60,6 @@ export default function AcceptInviteForm({ token, displayName, email }: Props) {
                     {displayName ? `Welcome, ${displayName}.` : "Welcome."} Choose a password to
                     finish joining Forino.
                 </p>
-                <p className="mt-1 break-all text-xs text-muted-foreground/80">{email}</p>
             </div>
 
             {error && (
@@ -93,12 +87,6 @@ export default function AcceptInviteForm({ token, displayName, email }: Props) {
                 />
             </div>
 
-            <ul className="flex list-inside list-disc flex-col gap-0.5 text-xs text-muted-foreground">
-                {RULES.map((r) => (
-                    <li key={r}>{r}</li>
-                ))}
-            </ul>
-
             <div className="flex flex-col gap-1.5">
                 <label htmlFor="invite-confirm" className="text-sm font-medium">
                     Confirm password
@@ -115,10 +103,34 @@ export default function AcceptInviteForm({ token, displayName, email }: Props) {
                 />
             </div>
 
+            {/* Same wording and control as the registration form, so accepting the
+                terms reads the same wherever an account is created. Enforced again
+                in the action: this form is a courtesy, not the gate. */}
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <input
+                    type="checkbox"
+                    id="invite-terms"
+                    className="h-4 w-4 cursor-pointer accent-primary"
+                    checked={acceptedTerms}
+                    onChange={(e) => setAcceptedTerms(e.target.checked)}
+                    required
+                />
+                <label htmlFor="invite-terms" className="cursor-pointer">
+                    I agree to the{" "}
+                    <Link
+                        href="/terms"
+                        target="_blank"
+                        className="text-primary underline underline-offset-2"
+                    >
+                        Terms &amp; Conditions
+                    </Link>
+                </label>
+            </div>
+
             <button
                 className="cursor-pointer rounded-[0.8em] bg-primary py-3 px-3 text-base text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
                 type="submit"
-                disabled={pending}
+                disabled={pending || !acceptedTerms}
             >
                 {pending ? "Creating your account…" : "Join Forino"}
             </button>

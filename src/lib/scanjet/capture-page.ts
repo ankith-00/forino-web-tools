@@ -43,6 +43,23 @@ export type ScannedPage = {
  */
 const PREVIEW_MAX_DIM = 720;
 
+/**
+ * JPEG quality for the per-page encode.
+ *
+ * This one encode serves two consumers: the on-screen thumbnail strip, and the
+ * PDF the Booklet Scanner uploads, which embeds this same image rather than a
+ * separate export-quality one. So this number is also the PDF's image quality.
+ *
+ * Raised from 0.72 to 0.9: at 0.72 fine pencil ticks and thin handwriting were
+ * dropping out. Note this is not the binding constraint on legibility —
+ * PREVIEW_MAX_DIM is. 720px is ~90 DPI once laid out on A4, so the pages stay
+ * soft however high this goes, and the PDF's page box is sized in pixels-as-
+ * points, so effective DPI depends on the size it is later viewed or printed at.
+ * Raising the cap and adding a real export path is the fix for that; this only
+ * removes the compression on top.
+ */
+const THUMB_JPEG_QUALITY = 0.9;
+
 let pageCounter = 0;
 
 /**
@@ -102,7 +119,7 @@ export async function scanFrame(
       quad,
       width: raster?.width ?? 0,
       height: raster?.height ?? 0,
-      thumb: raster ? rasterToDataUrl(raster, 0.72) : null,
+      thumb: raster ? rasterToDataUrl(raster, THUMB_JPEG_QUALITY) : null,
       raster,
     };
   });

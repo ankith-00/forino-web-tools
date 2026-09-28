@@ -15,12 +15,13 @@
  *  - The Supabase account is NOT created here. It is created when the invitee
  *    opens the link and sets a password. That keeps ignored invites out of
  *    auth.users and lets the same address be re-invited.
- *  - The new account deliberately gets no individual tool grants. The
- *    `set_default_access_metadata` trigger assigns role "user" with an empty
- *    tool_access, and public tools are merged in at read time by
- *    `mergeToolAccess`. Persisting public slugs into tool_access here would
- *    leave a stale grant behind if a tool was later made private — the same
- *    trap documented on unbanUserWithTools in manage-users/actions.ts.
+ *  - Tool access chosen by the admin is stored on the invite row, not on a user,
+ *    for the same reason: the account does not exist yet. It is applied in
+ *    src/app/invite/accept/actions.ts once the account is created. Public tools
+ *    are still never written into `tool_access` — they are merged in at read time
+ *    by `mergeToolAccess` — because a persisted grant would go stale if the tool
+ *    were later made private. The same trap is documented on unbanUserWithTools in
+ *    manage-users/actions.ts.
  */
 
 import { createHash, randomBytes } from "node:crypto";
@@ -46,7 +47,17 @@ function toInvite(row: Record<string, unknown>): Invite {
         createdAt: String(row.created_at),
         expiresAt: String(row.expires_at),
         acceptedAt: (row.accepted_at as string | null) ?? null,
+        // Null-tolerant: rows written before the granted_tools/blocked_tools
+        // migration had neither column, and mean "no choice made" either way.
+        grantedTools: toSlugList(row.granted_tools),
+        blockedTools: toSlugList(row.blocked_tools),
     };
+}
+
+function toSlugList(value: unknown): string[] {
+    return Array.isArray(value)
+        ? value.filter((s): s is string => typeof s === "string")
+        : [];
 }
 
 export function hashInviteToken(token: string): string {
@@ -74,6 +85,10 @@ export interface CreateInviteInput {
     email: string;
     displayName?: string | null;
     invitedBy?: string | null;
+    /** Private tools to grant the invitee once they accept. */
+    grantedTools?: string[];
+    /** Public tools to block the invitee from once they accept. */
+    blockedTools?: string[];
 }
 
 export interface CreatedInvite {
@@ -88,11 +103,17 @@ export interface CreatedInvite {
  *
  * Any earlier pending invite for the same address is revoked first, so only the
  * newest link works and "re-invite" doubles as "reissue a lost link".
+ *
+ * The tool lists are the admin's choice made at send time and are stored on the
+ * row, because no account exists yet to hang them on. They are applied in
+ * src/app/invite/accept/actions.ts at the moment the account is created.
  */
 export async function createInvite({
     email,
     displayName,
     invitedBy,
+    grantedTools = [],
+    blockedTools = [],
 }: CreateInviteInput): Promise<CreatedInvite> {
     const admin = getServiceClient();
     const address = normaliseEmail(email);
@@ -118,6 +139,8 @@ export async function createInvite({
             status: "pending",
             invited_by: invitedBy ?? null,
             expires_at: expiresAt,
+            granted_tools: [...new Set(grantedTools)],
+            blocked_tools: [...new Set(blockedTools)],
         })
         .select()
         .single();
