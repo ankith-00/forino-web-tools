@@ -7,7 +7,7 @@ import { createClient } from "@/utils/supabase/server";
 import { TOOLS, userAccess, mergeToolAccess, canAccessTool } from "@/lib/access";
 import { toolIcon } from "@/lib/tool-icons";
 import { fetchPublicTools } from "@/lib/public-tools";
-import { HiOutlineUser, HiOutlineLockClosed } from "react-icons/hi";
+import { HiOutlineLockClosed } from "react-icons/hi";
 import { HiOutlineExclamationTriangle } from "react-icons/hi2";
 import type { IconType } from "react-icons";
 
@@ -31,6 +31,11 @@ const TOOL_META: Record<string, { description: string; note?: string; noteIcon?:
     },
     "id-card": {
         description: "Generate student ID cards from your students' records.",
+    },
+    "magic-frame": {
+        description: "Frame photos automatically with a one-tap border.",
+        note: "Coming soon",
+        noteIcon: HiOutlineExclamationTriangle,
     },
 };
 

@@ -5,13 +5,21 @@ import AccessGate from "@/components/access/AccessGate";
 import Navbar from "@/components/layout/Navbar";
 import { BrowserMultiFormatReader } from "@zxing/browser";
 import { createClient } from "@/utils/supabase/client";
-import { LuCamera, LuScanBarcode, LuUpload, LuCircleCheck, LuArrowLeft } from "react-icons/lu";
+import { LuScanBarcode, LuUpload, LuCircleCheck, LuArrowLeft } from "react-icons/lu";
 import { HiOutlineDeviceMobile } from "react-icons/hi";
 import { IoChevronForwardOutline, IoRefreshOutline } from "react-icons/io5";
 import { BiSolidErrorAlt } from "react-icons/bi";
 
 import { PDFDocument } from "pdf-lib";
 import { WebcamBookletScanner, type ScannedPage } from "@/components/tools/WebcamBookletScanner";
+import { toolIcon } from "@/lib/tool-icons";
+
+/**
+ * The same icon the dashboard and navbar cards use for this tool, read from the one
+ * place that defines it. Hard-coding an icon here would let the hero card drift away
+ * from the card the user clicked to get here.
+ */
+const BookletScannerIcon = toolIcon("webcam-scanner");
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -242,12 +250,15 @@ function InstructionsStep({ onStart }: { onStart: () => void }) {
   ];
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
-      <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-28 pt-5 space-y-5">
+    // The horizontal padding lives on the step, not on each child, so the sticky
+    // action bar's divider lines up with the cards above it. Splitting the padding
+    // between the two would leave the bar's border hanging 1rem past the cards.
+    <div className="flex flex-col">
+      <div className="space-y-5 pb-4 pt-5">
         {/* Hero card */}
         <div className="rounded-[0.8em] bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/20 px-5 py-5">
-          <div className="flex h-12 w-12 items-center justify-center rounded-[0.8em] bg-primary/15 text-primary mb-3">
-            <LuCamera size={24} />
+          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-[0.8em] bg-primary/15 text-primary">
+            <BookletScannerIcon size={24} />
           </div>
           <h1 className="text-xl font-bold text-foreground">Booklet Scanner</h1>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -284,7 +295,10 @@ function InstructionsStep({ onStart }: { onStart: () => void }) {
         </div>
       </div>
 
-      <div className="fixed bottom-0 inset-x-0 z-20 border-t border-border bg-background/95 px-4 py-3 backdrop-blur-sm">
+      {/* `sticky` rather than `fixed`. It stays docked to the bottom of the viewport
+          while a long step scrolls under it, and it sits inside the capped content
+          column, so it lines up with the cards above instead of spanning the window. */}
+      <div className="sticky bottom-0 z-20 border-t border-border bg-background/95 py-3 backdrop-blur-sm">
         <button
           id="start-scanner-btn"
           onClick={onStart}
@@ -315,8 +329,8 @@ function ScanBarcodeStep({
   onBack?: () => void;
 }) {
   return (
-    <div className="flex flex-col h-full overflow-hidden">
-      <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-10 pt-5 space-y-4">
+    <div className="flex flex-col">
+      <div className="space-y-4 pb-4 pt-5">
         <div className="rounded-[0.8em] border border-border bg-card px-4 py-4">
           <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">{subtitle}</p>
           <h2 className="mt-1 text-lg font-bold text-foreground">{title}</h2>
@@ -331,7 +345,7 @@ function ScanBarcodeStep({
         </p>
       </div>
       {onBack && (
-        <div className="border-t border-border px-4 py-3">
+        <div className="sticky bottom-0 z-20 border-t border-border bg-background/95 py-3 backdrop-blur-sm">
           <button
             onClick={onBack}
             className="flex w-full items-center justify-center gap-2 rounded-[0.8em] border border-border py-2.5 text-sm text-muted-foreground hover:bg-muted"
@@ -365,8 +379,8 @@ function CandidateDetailsStep({
   onRetry: () => void;
 }) {
   return (
-    <div className="flex flex-col h-full overflow-hidden">
-      <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-32 pt-5 space-y-4">
+    <div className="flex flex-col">
+      <div className="space-y-4 pb-4 pt-5">
         <div className="rounded-[0.8em] border border-border bg-card px-4 py-4">
           <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Step 1 Complete</p>
           <h2 className="mt-1 text-lg font-bold text-foreground">Candidate Details</h2>
@@ -419,7 +433,7 @@ function CandidateDetailsStep({
         )}
       </div>
 
-      <div className="fixed bottom-0 inset-x-0 z-20 border-t border-border bg-background/95 px-4 py-3 backdrop-blur-sm space-y-2">
+      <div className="sticky bottom-0 z-20 space-y-2 border-t border-border bg-background/95 py-3 backdrop-blur-sm">
         {details && !loading && (
           <button
             id="proceed-to-scan-btn"
@@ -564,8 +578,8 @@ function UploadStep({
   };
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
-      <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-28 pt-5 space-y-4">
+    <div className="flex flex-col">
+      <div className="space-y-4 pb-4 pt-5">
         {status !== "done" ? (
           <>
             <div className="rounded-[0.8em] border border-border bg-card px-4 py-4">
@@ -639,13 +653,13 @@ function UploadStep({
         )}
       </div>
 
-      <div className="fixed bottom-0 inset-x-0 z-20 border-t border-border bg-background/95 px-4 py-3 backdrop-blur-sm space-y-2">
+      <div className="sticky bottom-0 z-20 space-y-2 border-t border-border bg-background/95 py-3 backdrop-blur-sm">
         {status === "done" ? (
           <button
             onClick={onUploaded}
             className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-[0.8em] bg-primary py-3.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
           >
-            <LuCamera size={16} />
+            <BookletScannerIcon size={16} />
             Scan Another Booklet
           </button>
         ) : (
@@ -809,11 +823,21 @@ function WebcamScannerFlow() {
   }, []);
 
   return (
-    <div className="flex flex-col h-svh overflow-hidden bg-background font-sans text-foreground">
+    // `min-h-svh` rather than the previous `h-svh overflow-hidden`: the document
+    // itself scrolls now, so a tall step grows the page instead of hiding behind an
+    // inner scroller. That is what lets the action bar be `sticky` — it rides the
+    // document scroll and parks at the bottom of the viewport, instead of being
+    // fixed to it and so floating over a step's content.
+    //
+    // The `mx-auto w-full max-w-6xl px-6` column is the same one the attendance page
+    // uses (see AttendanceRecordsClient), so the two tools line up. The horizontal
+    // padding lives here and *only* here — the step wrappers deliberately carry none,
+    // otherwise the two insets stack and the cards sit further in than the header.
+    <div className="min-h-svh bg-background font-sans text-foreground">
       <Navbar />
 
       {/* Step header pill */}
-      <div className="px-4 pt-3 pb-1 flex items-center gap-2">
+      <div className="mx-auto flex w-full max-w-6xl items-center gap-2 px-6 pt-3 pb-1">
         {step !== "instructions" && (
           <button
             onClick={() => {
@@ -845,7 +869,7 @@ function WebcamScannerFlow() {
       </div>
 
       {/* Step content */}
-      <div className="flex-1 min-h-0 overflow-hidden">
+      <div className="mx-auto flex w-full max-w-6xl flex-col px-6">
         {step === "instructions" && (
           <InstructionsStep onStart={() => setStep("scan-barcode-start")} />
         )}
@@ -873,15 +897,22 @@ function WebcamScannerFlow() {
         )}
 
         {step === "scanning-pages" && candidate && (
-          <WebcamBookletScanner
-            onPagesComplete={handlePagesComplete}
-            candidateCode={startBarcode ?? ""}
-          />
+          // Height is explicit because the page no longer clips this step: the
+          // component is `flex-1` on its camera feed, which only resolves against a
+          // definite parent height. Previously that came from the old `h-svh
+          // overflow-hidden` shell. 85svh leaves the navbar and step pill visible
+          // above it without pushing a scrollbar onto the page.
+          <div className="h-[85svh]">
+            <WebcamBookletScanner
+              onPagesComplete={handlePagesComplete}
+              candidateCode={startBarcode ?? ""}
+            />
+          </div>
         )}
 
         {step === "scan-barcode-end" && (
-          <div className="flex flex-col h-full overflow-hidden">
-            <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-10 pt-5 space-y-4">
+          <div className="flex flex-col">
+            <div className="space-y-4 pb-4 pt-5">
               <div className="rounded-[0.8em] border border-border bg-card px-4 py-4">
                 <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Step 4 · Confirm</p>
                 <h2 className="mt-1 text-lg font-bold text-foreground">Scan Booklet Barcode Again</h2>

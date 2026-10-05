@@ -1,5 +1,9 @@
+"use client";
+
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { useSiteBranding } from "@/components/layout/SiteBrandingProvider";
+import { resolveSiteTitle } from "@/lib/site-branding";
 
 type SiteHeaderProps = {
     /** Rendered on the right, vertically centred against the logo. */
@@ -28,13 +32,27 @@ type SiteHeaderProps = {
  * the auth pages) lands at the same offset from the viewport edge on every
  * page. Both callers share this component precisely so those offsets cannot
  * drift apart when the padding is ever tuned.
+ *
+ * The wordmark is the signed-in user's own title when an admin has set one, and
+ * the platform name otherwise. It arrives through `SiteBrandingProvider`, which the
+ * root layout fills from a server read, so the correct name is in the
+ * server-rendered HTML — fetching it client-side would show the default first and
+ * correct it after hydration, which is visible on every page load.
+ *
+ * `font-mono` is scoped to the wordmark alone, not the header or the body. The font
+ * itself needs no setup here: `JetBrains_Mono` is already loaded in the root layout
+ * and `globals.css` maps its variable onto Tailwind's `--font-mono`, so this class
+ * is all it takes. Tracking is kept tight because JetBrains Mono is monospaced and
+ * a looser letter-spacing reads as a gap rather than as emphasis.
  */
 export function SiteHeader({ children, className = "", logoHref = "/dashboard" }: SiteHeaderProps) {
+    const branding = useSiteBranding();
+
     return (
         <header className={`border-b border-border bg-background/80 backdrop-blur ${className}`}>
             <nav className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
-                <Link href={logoHref} className="font-serif text-xl font-semibold tracking-tight">
-                    Forino
+                <Link href={logoHref} className="font-mono text-xl font-semibold tracking-tight">
+                    {resolveSiteTitle(branding)}
                 </Link>
                 <div className="flex items-center gap-3">{children}</div>
             </nav>

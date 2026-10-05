@@ -14,6 +14,7 @@ import {
     setToolPublic as svcSetToolPublic,
     banUser as svcBanUser,
     unbanUser as svcUnbanUser,
+    setUserBranding as svcSetUserBranding,
     listUsers,
 } from "@/lib/admin";
 
@@ -63,6 +64,20 @@ export async function banUserFromPlatform(userId: string) {
     await assertAdmin();
     await svcBanUser(userId);
     revalidatePath("/manage-users");
+}
+
+/**
+ * Set one user's site title and footer note.
+ *
+ * The values land in that user's `app_metadata`, so they only affect what that one
+ * person sees. Both pages the change can surface on are revalidated: the admin's
+ * own user list, and the dashboard that reads the brand back for the user.
+ */
+export async function updateUserBranding(userId: string, siteTitle: string, footerNote: string) {
+    await assertAdmin();
+    await svcSetUserBranding(userId, { siteTitle, footerNote });
+    revalidatePath("/manage-users");
+    revalidatePath("/dashboard");
 }
 
 /** Unban a user from the platform. */

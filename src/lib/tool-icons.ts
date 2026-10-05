@@ -1,12 +1,14 @@
 import type { IconType } from "react-icons";
 import {
-    LuScanBarcode,
     LuCamera,
     LuFileText,
 } from "react-icons/lu";
-import { ImBarcode } from "react-icons/im";
+import { RiFileScanLine, RiQrScanAiLine } from "react-icons/ri";
+import { PiUserFocus } from "react-icons/pi";
+import { TbUserScan } from "react-icons/tb";
 import { MdAutoGraph } from "react-icons/md";
 import { BiSolidCard } from "react-icons/bi";
+import { CiImageOn } from "react-icons/ci";
 
 /**
  * Per-tool icons, shared by the avatar menu and the dashboard so a tool looks
@@ -16,11 +18,12 @@ import { BiSolidCard } from "react-icons/bi";
  * Titles live on TOOLS in `@/lib/access`; this is icons only.
  */
 export const TOOL_ICONS: Record<string, IconType> = {
-    scanner: LuScanBarcode,
-    "webcam-scanner": LuCamera,
-    barcode: ImBarcode,
-    "id-card": BiSolidCard,
+    scanner: TbUserScan,
+    "webcam-scanner": RiFileScanLine,
+    barcode: RiQrScanAiLine,
+    "id-card": PiUserFocus,
     "attendance-records": MdAutoGraph,
+    "magic-frame": CiImageOn,
 };
 
 export function toolIcon(slug: string): IconType {

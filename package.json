@@ -1,5 +1,5 @@
 {
-  "name": "web-tools",
+  "name": "util-tools",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -10,7 +10,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "node --test src/lib/scanjet/__tests__/*.test.ts",
+    "test": "node --test src/lib/scanjet/__tests__/*.test.ts src/lib/__tests__/*.test.ts",
     "copy-wasm": "node scripts/copy-zxing-wasm.mjs",
     "postinstall": "node scripts/copy-zxing-wasm.mjs"
   },

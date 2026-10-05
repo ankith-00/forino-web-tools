@@ -6,6 +6,7 @@
  */
 import { createClient as createAdminClient, type SupabaseClient } from "@supabase/supabase-js";
 import { userAccess, type AdminUser } from "@/lib/access";
+import { normaliseBranding, userBranding } from "@/lib/site-branding";
 
 let lazilyCreated: SupabaseClient | null = null;
 
@@ -40,6 +41,7 @@ function toAdminUser(u: {
 }): AdminUser {
     const existing = u.user_metadata as Record<string, unknown> | undefined;
     const access = userAccess(u);
+    const branding = userBranding(u);
     const banned = !!u.banned_until;
     return {
         id: u.id,
@@ -51,6 +53,8 @@ function toAdminUser(u: {
         role: access.role,
         toolAccess: access.toolAccess,
         blockedTools: access.blockedTools ?? [],
+        siteTitle: branding.siteTitle,
+        footerNote: branding.footerNote,
         createdAt: u.created_at ?? null,
         banned,
     };
@@ -140,6 +144,40 @@ export async function setToolPublic(slug: string, isPublic: boolean): Promise<vo
         result = await admin.from("tool_settings").delete().eq("slug", slug);
     }
     if (result.error) throw result.error;
+}
+
+/**
+ * Write one user's site branding into `app_metadata`.
+ *
+ * Merges onto the existing metadata rather than replacing it, because
+ * `app_metadata` also holds `role`, `tool_access` and `blocked_tools` — replacing
+ * it wholesale would silently strip a user's access every time an admin renamed
+ * their app. Input is normalised first, so a blank field is stored as `null` and
+ * reads back as "use the platform default".
+ *
+ * Always writes both keys, even when one is unchanged, so a user can never end up
+ * with a brand that is half-set from two different saves.
+ */
+export async function setUserBranding(userId: string, input: { siteTitle: string; footerNote: string }): Promise<void> {
+    const branding = normaliseBranding(input);
+    const { data, error: readError } = await getAdmin().auth.admin.getUserById(userId);
+
+    // Bail rather than writing onto a metadata object we failed to read. Spreading
+    // an empty object here would replace app_metadata wholesale and strip the user's
+    // role and tool access, which is far worse than reporting the failure.
+    if (readError) throw readError;
+    if (!data?.user) throw new Error("That user no longer exists.");
+
+    const existing = data.user.app_metadata ?? {};
+
+    const { error } = await getAdmin().auth.admin.updateUserById(userId, {
+        app_metadata: {
+            ...existing,
+            site_title: branding.siteTitle,
+            footer_note: branding.footerNote,
+        },
+    });
+    if (error) throw error;
 }
 
 /** Ban a user from the entire platform. */

@@ -25,11 +25,8 @@ import {
 import { HiOutlineDocumentArrowDown } from "react-icons/hi2";
 import { LuFileChartColumn } from "react-icons/lu";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
 
 type Step = "upload" | "processing" | "done" | "error";
-
-// ─── Toast ────────────────────────────────────────────────────────────────────
 
 function Toast({ type, message, onDismiss }: { type: "success" | "error"; message: string; onDismiss: () => void }) {
     useEffect(() => {
@@ -38,11 +35,10 @@ function Toast({ type, message, onDismiss }: { type: "success" | "error"; messag
     }, [onDismiss]);
 
     return (
-        <div className={`fixed bottom-6 left-1/2 z-50 flex w-max max-w-sm -translate-x-1/2 items-center gap-3 rounded-[0.8em] border px-4 py-3 shadow-lg transition-all duration-300 ${
-            type === "success"
+        <div className={`fixed bottom-6 left-1/2 z-50 flex w-max max-w-sm -translate-x-1/2 items-center gap-3 rounded-[0.8em] border px-4 py-3 shadow-lg transition-all duration-300 ${type === "success"
                 ? "border-emerald-400/30 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300"
                 : "border-red-400/30 bg-red-50 text-red-700 dark:bg-red-950/60 dark:text-red-300"
-        }`}>
+            }`}>
             {type === "success"
                 ? <RiVerifiedBadgeFill size={18} className="shrink-0 text-emerald-500" />
                 : <BiSolidErrorAlt size={18} className="shrink-0 text-red-500" />
@@ -55,7 +51,6 @@ function Toast({ type, message, onDismiss }: { type: "success" | "error"; messag
     );
 }
 
-// ─── Step indicator ───────────────────────────────────────────────────────────
 
 const STEPS = ["Upload", "Processing", "Complete"] as const;
 
@@ -66,13 +61,12 @@ function StepDots({ step }: { step: Step }) {
             {STEPS.map((label, i) => (
                 <div key={label} className="flex items-center gap-2">
                     <div className="flex flex-col items-center gap-1">
-                        <div className={`flex h-7 w-7 items-center justify-center rounded-full border text-xs font-semibold transition-all duration-300 ${
-                            i < idx
+                        <div className={`flex h-7 w-7 items-center justify-center rounded-full border text-xs font-semibold transition-all duration-300 ${i < idx
                                 ? "border-primary bg-primary text-primary-foreground"
                                 : i === idx
-                                ? "border-primary bg-primary/10 text-primary"
-                                : "border-border bg-background text-muted-foreground"
-                        }`}>
+                                    ? "border-primary bg-primary/10 text-primary"
+                                    : "border-border bg-background text-muted-foreground"
+                            }`}>
                             {i < idx ? <HiOutlineCheckCircle size={14} /> : i + 1}
                         </div>
                         <span className={`text-xs ${i === idx ? "text-foreground" : "text-muted-foreground"}`}>
@@ -88,7 +82,6 @@ function StepDots({ step }: { step: Step }) {
     );
 }
 
-// ─── Upload step ──────────────────────────────────────────────────────────────
 
 function UploadStep({ onStart, disabled }: { onStart: (file: File) => void; disabled: boolean }) {
     const [dragging, setDragging] = useState(false);
@@ -123,15 +116,14 @@ function UploadStep({ onStart, disabled }: { onStart: (file: File) => void; disa
                 onDrop={onDrop}
                 onDragOver={onDragOver}
                 onDragLeave={onDragLeave}
-                className={`relative flex min-h-[220px] flex-col items-center justify-center gap-4 rounded-[0.8em] border-2 border-dashed transition-all duration-200 ${
-                    disabled
+                className={`relative flex min-h-[220px] flex-col items-center justify-center gap-4 rounded-[0.8em] border-2 border-dashed transition-all duration-200 ${disabled
                         ? "cursor-not-allowed border-border bg-muted/20 opacity-60"
                         : dragging
-                        ? "cursor-pointer border-primary bg-primary/5 scale-[1.01]"
-                        : file
-                        ? "cursor-default border-primary/40 bg-primary/5"
-                        : "cursor-pointer border-border bg-muted/30 hover:border-primary/50 hover:bg-muted/50"
-                }`}
+                            ? "cursor-pointer border-primary bg-primary/5 scale-[1.01]"
+                            : file
+                                ? "cursor-default border-primary/40 bg-primary/5"
+                                : "cursor-pointer border-border bg-muted/30 hover:border-primary/50 hover:bg-muted/50"
+                    }`}
             >
                 <input ref={inputRef} type="file" accept=".pdf" disabled={disabled} className="hidden" onChange={onInputChange} />
 
@@ -162,8 +154,8 @@ function UploadStep({ onStart, disabled }: { onStart: (file: File) => void; disa
                                 {disabled
                                     ? "Uploads are paused"
                                     : dragging
-                                    ? "Drop to upload"
-                                    : "Drag & drop your PDF here"}
+                                        ? "Drop to upload"
+                                        : "Drag & drop your PDF here"}
                             </p>
                             <p className="mt-0.5 text-xs text-muted-foreground">
                                 {disabled
@@ -186,8 +178,8 @@ function UploadStep({ onStart, disabled }: { onStart: (file: File) => void; disa
     );
 }
 
-// ─── Processing step ──────────────────────────────────────────────────────────
 
+// Processing step
 function ProcessingStep({ status, uploadProgress }: { status: StatusResponse | null; uploadProgress: number }) {
     const isUploading = uploadProgress < 100;
     const processed = status?.processed_pages ?? 0;
@@ -493,7 +485,7 @@ function BarcodeApp() {
             }
         };
         resume();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const handleStart = async (file: File) => {

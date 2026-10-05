@@ -7,6 +7,7 @@ import type { Invite } from "@/lib/invite-shared";
 import { isExpired, inviteMatchesQuery } from "@/lib/invite-shared";
 import { initials } from "@/lib/initials";
 import InvitesPanel from "./invites-panel";
+import BrandingSection from "./branding-section";
 import { toggleToolAccess, toggleBlockedTool, banUserFromPlatform, unbanUserFromPlatform, unbanUserWithTools } from "./actions";
 import {
     HiOutlineExclamation,
@@ -569,6 +570,46 @@ export default function UsersTable({
                                                     );
                                                 })}
                                             </div>
+                                        )}
+                                    </div>
+
+                                    {/* Site Configuration Accordion. Per-user, unlike
+                                        the tool rows above it: this sets the title and
+                                        footer that one account sees, stored in their
+                                        own app_metadata. */}
+                                    <div className="mt-3 overflow-hidden rounded-[0.8em] border border-border bg-card">
+                                        <button
+                                            type="button"
+                                            onClick={() => toggleSection(`${u.id}-branding`)}
+                                            className="flex w-full cursor-pointer items-center justify-between gap-2 p-4 text-left transition-colors hover:bg-muted/50"
+                                        >
+                                            <span className="text-sm font-semibold text-foreground">Site Configuration</span>
+                                            <span className="flex items-center gap-2">
+                                                <span className="truncate text-xs text-muted-foreground">
+                                                    {u.siteTitle || u.footerNote
+                                                        ? "Custom"
+                                                        : "Default"}
+                                                </span>
+                                                <HiChevronDown
+                                                    size={16}
+                                                    className={`text-muted-foreground transition-transform ${openSections[`${u.id}-branding`] ? "rotate-180" : ""}`}
+                                                />
+                                            </span>
+                                        </button>
+                                        {openSections[`${u.id}-branding`] && (
+                                            <BrandingSection
+                                                // Keyed on the saved values so the inputs
+                                                // re-seed after a save refreshes this card,
+                                                // instead of holding the values typed before it.
+                                                key={`${u.siteTitle ?? ""}\u0000${u.footerNote ?? ""}`}
+                                                userId={u.id}
+                                                userLabel={u.displayName ?? u.email ?? "user"}
+                                                initial={{
+                                                    siteTitle: u.siteTitle,
+                                                    footerNote: u.footerNote,
+                                                }}
+                                                onDone={() => router.refresh()}
+                                            />
                                         )}
                                     </div>
                                 </>

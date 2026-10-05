@@ -32,7 +32,9 @@ const subscribeSystemTheme = (callback: () => void) => {
 export function ThemeProvider({
     children,
     defaultTheme = "system",
-    storageKey = "forino-theme",
+    // Must match the key read by the inline theme-init script in `src/app/layout.tsx`,
+  // which paints the theme before hydration to avoid a flash of the wrong one.
+  storageKey = "util-hub-theme",
 }: ThemeProviderProps) {
     const [theme, setThemeState] = useState<Theme>(() => {
         if (typeof window === "undefined") return defaultTheme;
