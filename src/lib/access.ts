@@ -28,6 +28,10 @@ export const TOOLS: readonly ToolDef[] = [
     { slug: "webcam-scanner", path: "/tools/booklet-scanner", title: "Booklet Scanner" },
     { slug: "attendance-records", path: "/tools/attendance-records", title: "Attendance Records" },
     { slug: "id-card", path: "/tools/id-card-maker", title: "ID Card Maker" },
+    // Placeholder route. It renders `notFound()` until the tool is built, but it
+    // still belongs in TOOLS so the card appears in the dashboard and so admins can
+    // grant, block or publish access to it ahead of time rather than after launch.
+    { slug: "magic-frame", path: "/tools/magic-frame", title: "Magic Frame" },
 ];
 
 export interface UserAccess {
