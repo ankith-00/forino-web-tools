@@ -32,6 +32,11 @@ const TOOL_META: Record<string, { description: string; note?: string; noteIcon?:
     "id-card": {
         description: "Generate student ID cards from your students' records.",
     },
+    "magic-frame": {
+        description: "Frame photos automatically with a one-tap border.",
+        note: "Coming soon",
+        noteIcon: HiOutlineExclamationTriangle,
+    },
 };
 
 export default async function DashboardPage() {
